@@ -93,7 +93,7 @@ def main(argv):
     alt = fh_hdf5[contig]['variants']['ALT'][variant_bool]
 
     # determine which samples we care about
-    include_samples = [s in tfam.ID for s in h5_samples]
+    include_samples = [s in tfam.Individual_ID for s in h5_samples]
 
     call_data = fh_hdf5[contig]['calldata']['genotype'][variant_bool,:,:]
 
