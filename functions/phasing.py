@@ -62,24 +62,30 @@ def calc_distance_matrix(parental_haplotypes, progeny_haplotypes):
 
 # -----------------
 
-# CALC_MEAN_BAD_ASSIGNMENTS
+# CALC_BEST_ASSIGNEMENT_QUAL
 # function that calculates number of impossible haplotype assignments.
 # - parental_haplotypes a 2D array, N x 4
-# - progeny_haplotypes a 2D array of same N x S
+# - progeny_haplotypes a 2D array of same N x S. Every pair is an individual.
 
-# Returns the boolean vector of whether haplotypes of an individaul make sense. 
+# Returns the vector of how parimonious the best explantion is. Result is length S/2 
 
-def calc_mean_bad_assignments(parental_haplotypes, progeny_haplotypes):
+def calc_best_assignment_qual(parental_haplotypes, progeny_haplotypes):
 
     distance_mat = calc_distance_matrix(parental_haplotypes, progeny_haplotypes) 
     
-    inferred_haplotypes = distance_mat.argmin(axis=1).reshape((-1,2))
-    inferred_haplotypes.sort(axis=1)
+    dmr = distance_mat.reshape(distance_mat.shape[0]/2, 2, 4)
     
-    ok_haplotypes = np.array([inferred_haplotypes[i,0] <2 & inferred_haplotypes[i,1] >=2
-        for i in range(inferred_haplotypes.shape[0])])
+    combs = [(0,2), (0,3), (1,2), (1,3)]
+    
+    l = []
+    for i in range(dmr.shape[0]):
+        v = dmr[i]
+        l.append(np.min(
+            [v[0, c[0]] + v[1, c[1]] for c in combs]
+        ))
+    assert len(l) == progeny_haplotypes.shape[1]/2
 
-    return ok_haplotypes
+    return np.mean(l)
 
 # ------------
 
