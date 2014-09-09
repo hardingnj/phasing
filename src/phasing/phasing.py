@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 # internal
 import anhima.gt
 import anhima.loc
+import sh
 
 # function that for a given cross returns the par and prog genotypes
 # - pat_idx index of paternal diploid genotype
