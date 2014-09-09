@@ -136,4 +136,21 @@ def plot_haplotype_descent(parental_haplotypes, progeny_haplotypes, positions):
     ax = fig.add_axes(bot_panel)
     anhima.loc.plot_variant_locator(positions, step=10, ax=ax);
 
+# create script file
+# Not strictly a phasing function, but so commonly used, may as well put here!
 
+def create_sh_script(filename, commands = [], outfile = None):
+    if outfile is None:
+        outfile = filename
+    
+    touch_cmd = "touch {FILE}"
+    
+    script = open(filename,'w')
+    script.write("#! /bin/bash" + "\n")
+    script.write("set -e" + "\n")
+    script.write("set -o pipefail" + "\n")
+    for cmd in commands:
+        script.write(cmd + "\n")
+    script.write(touch_cmd.format(FILE=outfile + '.ok') + "\n")
+    sh.chmod('+x', filename)
+    script.close()
