@@ -25,6 +25,23 @@ def get_tped_row(gt_data, reference, alternate, position, contig):
         str_gts = convert_gts_to_strings(gt_data, reference, alternate);
         return "\t".join([contig, 'snp'+str(position), '0', str(position)] + str_gts)
 
+
+def create_tped(gtypes, reference, alternate, position, fn_tped, contig = '0'):
+
+    fh_tped_file = open(fn_tped, 'w');
+
+    # loop through variants
+    for idx in xrange(gtypes.shape[0]):
+        out_string = get_tped_row(gtypes[idx, :, :], 
+                                  reference[idx], 
+                                  alternate[idx], 
+                                  position[idx], 
+                                  contig)
+
+        fh_tped_file.write(out_string + "\n");
+    
+    return None
+
 def create_tped_from_hdf5(h5file, out_dir = None, region = None, samples = None):
 
     # make checks
@@ -46,32 +63,21 @@ def create_tped_from_hdf5(h5file, out_dir = None, region = None, samples = None)
     include_samples = [h5_samples.index(s) for s in samples]
 
     # read positions
-    positions = fh_hdf5[contig]['variants']['POS'][:]
+    pos = fh_hdf5[contig]['variants']['POS'][:]
 
-    position_slice = anhima.loc.locate_region(positions,
+    position_slice = anhima.loc.locate_region(pos,
                                               start_position=start, 
                                               stop_position=stop)
 
-    positions = positions[position_slice]
+    pos = pos[position_slice]
 
     # read alt/ref
     ref = fh_hdf5[contig]['variants']['REF'][position_slice]
     alt = fh_hdf5[contig]['variants']['ALT'][position_slice]
 
-
     call_data = fh_hdf5[contig]['calldata']['genotype'][position_slice,:,:]
-
     tped_file = os.path.join(out_dir, "_".join([ str(s) for s in [contig, start, stop]])+'.tped')
-    fh_tped_file = open(tped_file, 'w');
 
-    # loop through variants
-    for idx in xrange(call_data.shape[0]):
-        out_string = get_tped_row(call_data[idx, include_samples, :], 
-                                  ref[idx], 
-                                  alt[idx], 
-                                  positions[idx], 
-                                  contig)
+    create_tped(call_data[:,include_samples,:], ref, alt, pos, tped_file, contig)
 
-        fh_tped_file.write(out_string + "\n");
-    
     return tped_file
