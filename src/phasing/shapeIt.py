@@ -66,7 +66,7 @@ class ShapeIt:
         command_dict = {'version': self.version, 'run_id': self.run_id}  # later
         #  we can populate with defaults / allowed
 
-        cl = re.compile('^--')
+        cl = re.compile('^-')
         last_was_key = False
         key = None
 
@@ -107,4 +107,4 @@ class ShapeIt:
         phasing.create_sh_script(self.script_f, [self.command_string],
                                  self.haplotypes_f)
 
-        sh.qsub(qsub_parameters + list(args) + [self.script_f])
+        print sh.qsub(qsub_parameters + list(args) + [self.script_f])
