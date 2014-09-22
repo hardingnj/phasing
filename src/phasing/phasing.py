@@ -140,7 +140,8 @@ def plot_haplotype_descent(parental_haplotypes, progeny_haplotypes, positions):
 # create script file
 # Not strictly a phasing function, but so commonly used, may as well put here!
 
-def create_sh_script(filename, commands = [], outfile = None):
+
+def create_sh_script(filename, commands=[], outfile=None):
     if outfile is None:
         outfile = filename
     

@@ -11,7 +11,7 @@
 import getopt
 import sys
 import pandas as pd
-import phasing.hdf5_2_tped
+#import phasing.hdf5_2_tped
 
 # Main exists to grab args. Calls create_tped_from_hdf5
 def main(argv):
@@ -63,7 +63,8 @@ def main(argv):
                                    4:'Sex', 
                                    5:'Phenotype'})
 
-    phasing.hdf5_2_tped.create_tped_from_hdf5(h5file, out_dir, region, tfam.Individual_ID)
+    #phasing.hdf5_2_tped.create_tped_from_hdf5(h5file, out_dir, region,
+    # tfam.Individual_ID)
     
 if __name__ == "__main__":
     main(sys.argv[1:])
