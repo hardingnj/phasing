@@ -71,6 +71,7 @@ class ShapeIt:
         key = None
 
         for value in parameters:
+            value = str(value)
             if cl.match(value):
                 key = value
                 command_dict[key] = True
@@ -106,4 +107,4 @@ class ShapeIt:
         phasing.create_sh_script(self.script_f, [self.command_string],
                                  self.haplotypes_f)
 
-        sh.qsub(' '.join(qsub_parameters + list(args) + [self.script_f]))
+        sh.qsub(qsub_parameters + list(args) + [self.script_f])
