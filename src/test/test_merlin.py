@@ -1,7 +1,7 @@
 __author__ = 'Nicholas Harding'
 
 import unittest
-import phasing.merlin
+import phasing
 import tempfile
 
 

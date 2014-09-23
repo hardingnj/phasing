@@ -1,0 +1,6 @@
+numpy
+anhima
+sh
+scipy
+matplotlib
+ipython
