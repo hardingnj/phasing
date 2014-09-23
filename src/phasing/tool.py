@@ -16,7 +16,7 @@ class Tool():
         self.executable = executable
         self.command_string = ''
         self.command_dict = {}
-        # nice to check that version is a string? 
+        # nice to check that version is a string?
         self.version = version()
         self.name = name
         self.outfile = outfile
@@ -54,7 +54,9 @@ class Tool():
                 else:
                     command_dict[key] = command_dict[key] + ';' + value
 
-        self.command_string = ' '.join([self.executable] + parameters)
+        self.command_string = ' '.join([self.executable] + [str(x)
+                                                            for x in
+                                                            parameters])
         self.command_dict = command_dict
 
     # GENERIC

@@ -21,4 +21,9 @@ class TestShapeIt(unittest.TestCase):
         self.assertEquals(test_run.command_dict['--output-max'],
                           test_run.haplotypes_f + ';' + test_run.phased_f)
 
-        #test_run.run('-l', 'h_vmem=2G')
+    def test_numbers_ok(self):
+        tmp = tempfile.mkdtemp()
+        params = ['--thread', 0.05, '--setting', 1]
+
+        t = phasing.shapeIt.ShapeIt(params, tmp)
+        self.assertEquals(t.command_dict['--thread'], '0.05')
