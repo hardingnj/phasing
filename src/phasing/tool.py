@@ -3,7 +3,8 @@ __author__ = 'Nicholas Harding'
 import os
 import re
 import pprint
-import  utils
+import utils
+import shutil
 import sh
 import uuid
 
@@ -71,6 +72,9 @@ class Tool():
                       indent=2,
                       width=80,
                       depth=None)
+
+    def delete(self):
+        shutil.rmtree(self.outdir)
 
     # GENERIC
     def run(self, *args):
