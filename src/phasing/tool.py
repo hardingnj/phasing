@@ -21,7 +21,7 @@ class Tool():
         self.name = name
         self.outfile = outfile
 
-        self.run_id = name + str(uuid.uuid4().get_hex().upper()[0:8])
+        self.run_id = name + '_' + str(uuid.uuid4().get_hex().upper()[0:8])
         self.outdir = os.path.join(outdir, self.name, self.version, self.run_id)
 
         # set log name and script name
@@ -29,6 +29,11 @@ class Tool():
         self.script_f = os.path.join(self.outdir, self.run_id + '.sh')
         self.param_f = os.path.join(self.outdir, self.run_id +
                                     '_parameters.txt')
+
+    def __str__(self):
+        return "\n".join(['Outdir: ' + self.outdir,
+                          'Executable: ' + self.executable,
+                          pprint.pformat(self.command_dict)])
 
     # GENERIC
     def parse_command(self, parameters):
