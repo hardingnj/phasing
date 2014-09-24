@@ -76,8 +76,8 @@ def main(argv):
                                                              stop]) + '.tped'),
                         callset=h5py.File(h5file),
                         chrom=chrom,
-                        start_position=start,
-                        stop_position=stop,
+                        start_position=int(start),
+                        stop_position=int(stop),
                         samples=tfam.Individual_ID)
     
 if __name__ == "__main__":
