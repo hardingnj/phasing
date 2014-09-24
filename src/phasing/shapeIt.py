@@ -3,7 +3,8 @@ __author__ = 'Nicholas Harding'
 import re
 import os
 import tool
-
+import pandas as pd
+import numpy as np
 # collection of methods for submission of shapeit jobs with various defaults
 
 # behaviour:
@@ -53,8 +54,26 @@ class ShapeIt(tool.Tool):
                                          self.phased_f])
 
     def parse_output(self):
-        pass
-        # (optionally can be passed a output directory)
+        # (optionally can be passed a output directory) or at least
+        # reconstructed
         # returns a genotype matrix in numpy format, matching anhima specs
         # and a list with the sample name of each column
+        haplotype_data = pd.read_csv(self.haplotypes_f, sep=" ", header=None)
 
+        haplotype_data = haplotype_data.rename(columns={
+            0: 'contig', 1: 'id', 2: 'pos', 3: 'A1', 4: 'A2'})
+
+        sample_data = pd.read_csv(self.phased_f, sep=" ", header=0,
+                                  skiprows=0)
+        sample_data = sample_data.ix[1:]
+
+        # get ped genotypes into anhima numpy formats.
+        htype_pos = np.array(haplotype_data.pos.values)
+
+        # store as 3D genotypes
+        htype_gts = np.array(haplotype_data.ix[:, 5:]).reshape((
+            haplotype_data.shape[0], -1, 2))
+
+        assert htype_gts.shape[1] == sample_data.shape[0]
+
+        return htype_gts, sample_data.columns, {'pos': htype_pos}

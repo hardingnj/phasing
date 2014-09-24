@@ -9,6 +9,13 @@ import sh
 import uuid
 
 
+# TO DO
+# Add reconstruct run function, so that run is recreated from filepath
+# Needs to detect whether shapeIt or Merlin etc. Class name can be added to
+# parameters file
+# checkout: http://stackoverflow.com/questions/141545/overloading-init-in-python
+
+
 class Tool():
 
     def __init__(self, executable=None, outdir=None, name=None,

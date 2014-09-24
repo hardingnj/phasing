@@ -4,3 +4,5 @@ sh
 scipy
 matplotlib
 ipython
+h5py
+pandas

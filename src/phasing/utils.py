@@ -181,3 +181,25 @@ def create_sh_script(filename, commands=None, outfile=None):
     script.write(touch_cmd.format(FILE=outfile + '.ok') + "\n")
     sh.chmod('+x', filename)
     script.close()
+
+
+def calc_windows(k, end, contig, start=1):
+    """
+    # Define function that detemines the regions, in chunks to split the jobs
+    # Function returns a list of strings
+    :param k: desired size
+    :param end: final base (inclusive)
+    :param contig: the contig
+    :param start: start of the window, usually 0/1
+    :return:
+    """
+
+    regions = []
+    i = start
+    while i < end:
+        regions.append(contig + '{S1}'
+                       + str(i) + "{S2}"
+                       + str(min(end, i + k - 1)))
+        i += k
+
+    return regions

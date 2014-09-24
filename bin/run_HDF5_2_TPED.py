@@ -3,29 +3,35 @@
 # note hdf5 files representing genotype data can be created using npyvcf
 
 # input:
-# - hdf5: including a calldata genotype field, representing the unphased genotypes.
-# - tfam, a family file in transverse format as specified by: http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#tr
-# - region: a chr/region consideration. This also defines the name of the output dir.
-# - output directory
+# - hdf5: including a calldata genotype field,
+#         representing the unphased genotypes.
+# - tfam, a family file in transverse format as
+#         specified by: http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#tr
+# - region: a chr/region consideration. This
+#         also defines the name of the output dir.
+# - output: directory
 
 import getopt
 import sys
 import pandas as pd
-#import phasing.hdf5_2_tped
+import os
+import h5py
+import anhima
+
 
 # Main exists to grab args. Calls create_tped_from_hdf5
 def main(argv):
 
-    h5file  = ''
+    h5file = ''
     tfam_file = ''
     out_dir = None
-    region  = None
+    region = None
 
     try:
         opts, args = getopt.getopt(
             argv,
             "i:t:o:r:",
-            ["h5file=","tfam=", "outdir=", "region="])
+            ["h5file=", "tfam=", "outdir=", "region="])
     except getopt.GetoptError:
         print ' '.join([
             'hdf5_2_ped.py',
@@ -55,16 +61,24 @@ def main(argv):
         elif opt in ("-r", "--region"):
             region = arg
 
-    tfam = pd.read_csv(tfam_file, sep = " ", header = None)
-    tfam = tfam.rename(columns = { 0:'Family_ID', 
-                                   1:'Individual_ID', 
-                                   2:'Paternal_ID', 
-                                   3:'Maternal_ID', 
-                                   4:'Sex', 
-                                   5:'Phenotype'})
+    tfam = pd.read_csv(tfam_file, sep=" ", header=None)
+    tfam = tfam.rename(columns={0: 'Family_ID',
+                                1: 'Individual_ID',
+                                2: 'Paternal_ID',
+                                3: 'Maternal_ID',
+                                4: 'Sex',
+                                5: 'Phenotype'})
 
-    #phasing.hdf5_2_tped.create_tped_from_hdf5(h5file, out_dir, region,
-    # tfam.Individual_ID)
+    chrom, loc = region.split(':')
+    start, stop = loc.split('-')
+
+    anhima.h5.save_tped(path=os.path.join(out_dir, "_".join([chrom, start,
+                                                             stop]) + '.tped'),
+                        callset=h5py.File(h5file),
+                        chrom=chrom,
+                        start_position=start,
+                        stop_position=stop,
+                        samples=tfam.Individual_ID)
     
 if __name__ == "__main__":
     main(sys.argv[1:])
