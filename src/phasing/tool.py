@@ -96,7 +96,8 @@ class Tool():
         self.dump_parameters()
 
         utils.create_sh_script(filename=self.script_f,
-                               commands=[self.command_string],
+                               commands=['cd ' + self.outdir,
+                                         self.command_string],
                                outfile=self.outfile)
 
         print sh.qsub(qsub_parameters + list(args) + [self.script_f])
