@@ -14,3 +14,4 @@ class TestMerlin(unittest.TestCase):
 
         test_run = phasing.merlin.Merlin(params, tmp)
         self.assertEquals(test_run.version, '1.1.2')
+        self.assertEquals(test_run.name, 'Merlin')

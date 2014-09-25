@@ -47,7 +47,8 @@ class Tool():
     def parse_command(self, parameters):
 
         # create command
-        command_dict = {'version': self.version, 'run_id': self.run_id}  # later
+        command_dict = {'name': self.name,  'version': self.version,
+                        'run_id': self.run_id}
         #  we can populate with defaults / allowed
 
         cl = re.compile('^-')

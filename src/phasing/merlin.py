@@ -26,7 +26,7 @@ class Merlin(tool.Tool):
         tool.Tool.__init__(self,
                            executable=executable,
                            outdir=outdir,
-                           name='Merlin',
+                           name=Merlin.__name__,
                            version=self._get_version)
 
         # no need to auto determine any parameters for merlin

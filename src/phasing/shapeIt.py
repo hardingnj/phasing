@@ -41,7 +41,7 @@ class ShapeIt(tool.Tool):
         tool.Tool.__init__(self,
                            executable=executable,
                            outdir=outdir,
-                           name='shapeIt',
+                           name=ShapeIt.__name__,
                            version=self._get_version)
 
         # automatically work out output filenames.
