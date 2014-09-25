@@ -2,7 +2,7 @@ __author__ = 'Nicholas Harding'
 
 import os
 import re
-import pprint
+import yaml
 import utils
 import shutil
 import sh
@@ -19,36 +19,61 @@ import uuid
 class Tool():
 
     def __init__(self, executable=None, outdir=None, name=None,
-                 version=None, outfile=None):
+                 version=None, run_id=None, outfile=None):
 
         self.executable = executable
         self.command_string = ''
         self.command_dict = {}
         # nice to check that version is a string?
-        self.version = version()
+        if isinstance(version, basestring):
+            self.version = version
+        else:
+            self.version = version()
         self.name = name
         self.outfile = outfile
 
-        self.run_id = name + '_' + str(uuid.uuid4().get_hex().upper()[0:8])
+        if run_id is None:
+            self.run_id = name + '_' + str(uuid.uuid4().get_hex().upper()[0:8])
+        else:
+            self.run_id = run_id
         self.outdir = os.path.join(outdir, self.name, self.version, self.run_id)
+        self.basedir = outdir
 
         # set log name and script name
         self.log_f = os.path.join(self.outdir, self.run_id + '.log')
         self.script_f = os.path.join(self.outdir, self.run_id + '.sh')
         self.param_f = os.path.join(self.outdir, self.run_id +
-                                    '_parameters.txt')
+                                    '_parameters.yaml')
+
+    @classmethod
+    def from_directory(cls, directory):
+
+        # basename is run id
+        directory = os.path.realpath(directory)
+        assert os.path.isdir(directory)
+        base, run_id = os.path.split(directory)
+
+        param_yaml = os.path.join(directory, run_id + '_parameters.yaml')
+        from_yaml = yaml.load(stream=open(param_yaml, 'w'))
+
+        return cls(executable=from_yaml['executable'],
+                   outdir=from_yaml['base_dir'],
+                   name=from_yaml['name'],
+                   version=from_yaml['version'],
+                   run_id=run_id)
 
     def __str__(self):
         return "\n".join(['Outdir: ' + self.outdir,
                           'Executable: ' + self.executable,
-                          pprint.pformat(self.command_dict)])
+                          yaml.dump(self.command_dict)])
 
     # GENERIC
     def parse_command(self, parameters):
 
         # create command
         command_dict = {'name': self.name,  'version': self.version,
-                        'run_id': self.run_id}
+                        'run_id': self.run_id, 'base_dir': self.basedir,
+                        'executable': self.executable}
         #  we can populate with defaults / allowed
 
         cl = re.compile('^-')
@@ -75,11 +100,8 @@ class Tool():
 
     # GENERIC
     def dump_parameters(self):
-        pprint.pprint(self.command_dict,
-                      stream=open(self.param_f, 'w'),
-                      indent=2,
-                      width=80,
-                      depth=None)
+        yaml.dump(self.command_dict,
+                  stream=open(self.param_f, 'w'))
 
     def delete(self):
         shutil.rmtree(self.outdir)

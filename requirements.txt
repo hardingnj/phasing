@@ -4,5 +4,6 @@ sh
 scipy
 matplotlib
 ipython
+yaml
 h5py
 pandas
