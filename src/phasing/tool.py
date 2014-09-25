@@ -54,7 +54,7 @@ class Tool():
         base, run_id = os.path.split(directory)
 
         param_yaml = os.path.join(directory, run_id + '_parameters.yaml')
-        from_yaml = yaml.load(stream=open(param_yaml, 'w'))
+        from_yaml = yaml.load(stream=open(param_yaml, 'r'))
 
         return cls(executable=from_yaml['executable'],
                    outdir=from_yaml['base_dir'],
