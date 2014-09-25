@@ -19,11 +19,16 @@ import uuid
 class Tool():
 
     def __init__(self, executable=None, outdir=None, name=None,
-                 version=None, run_id=None, outfile=None):
+                 version=None, run_id=None, command_dict=None, outfile=None):
 
         self.executable = executable
         self.command_string = ''
-        self.command_dict = {}
+
+        if command_dict is None:
+            self.command_dict = {}
+        else:
+            self.command_dict = command_dict
+
         # nice to check that version is a string?
         if isinstance(version, basestring):
             self.version = version
@@ -60,7 +65,8 @@ class Tool():
                    outdir=from_yaml['base_dir'],
                    name=from_yaml['name'],
                    version=from_yaml['version'],
-                   run_id=run_id)
+                   run_id=run_id,
+                   command_dict=from_yaml)
 
     def __str__(self):
         return "\n".join(['Outdir: ' + self.outdir,
