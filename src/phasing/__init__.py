@@ -10,5 +10,4 @@ __version__ = '0.1'
 
 from . import utils
 from . import tool
-from . import merlin
-from . import shapeIt
+from . import algorithms

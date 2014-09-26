@@ -1,7 +1,7 @@
 __author__ = 'Nicholas Harding'
 
 import unittest
-import phasing.shapeIt
+import phasing.algorithms
 import tempfile
 
 
@@ -10,20 +10,20 @@ class TestShapeIt(unittest.TestCase):
     def test_initialize(self):
 
         tmp = tempfile.mkdtemp()
-        params = ['--B', 'file', '--duoHMM']
+        params = ['--B', 'file', '--duohmm']
 
-        test_run = phasing.shapeIt.ShapeIt(params, tmp)
+        test_run = phasing.algorithms.ShapeIt(params, tmp)
 
-        self.assertIsInstance(test_run.command_dict, dict)
-        self.assertEquals(test_run.command_dict['--B'], 'file')
-        self.assertTrue(test_run.command_dict['--duoHMM'])
+        self.assertIsInstance(test_run.tool_dict, dict)
+        self.assertEquals(test_run.tool_dict['command']['--B'], 'file')
+        self.assertTrue(test_run.tool_dict['command']['--duohmm'])
 
-        self.assertEquals(test_run.command_dict['--output-max'],
+        self.assertEquals(test_run.tool_dict['command']['--output-max'],
                           test_run.haplotypes_f + ';' + test_run.phased_f)
 
     def test_numbers_ok(self):
         tmp = tempfile.mkdtemp()
         params = ['--thread', 0.05, '--setting', 1]
 
-        t = phasing.shapeIt.ShapeIt(params, tmp)
-        self.assertEquals(t.command_dict['--thread'], '0.05')
+        t = phasing.algorithms.ShapeIt(params, tmp)
+        self.assertEquals(t.tool_dict['command']['--thread'], '0.05')

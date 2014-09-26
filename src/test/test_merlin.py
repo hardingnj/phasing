@@ -12,6 +12,6 @@ class TestMerlin(unittest.TestCase):
         tmp = tempfile.mkdtemp()
         params = ['--B', 'file', '--duoHMM']
 
-        test_run = phasing.merlin.Merlin(params, tmp)
+        test_run = phasing.algorithms.Merlin(params, tmp)
         self.assertEquals(test_run.version, '1.1.2')
         self.assertEquals(test_run.name, 'Merlin')

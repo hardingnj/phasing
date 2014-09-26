@@ -18,22 +18,12 @@ import uuid
 
 class Tool():
 
-    def __init__(self, executable=None, outdir=None, name=None,
-                 version=None, run_id=None, command_dict=None, outfile=None):
+    def __init__(self, parameters=None, executable=None, outdir=None, name=None,
+                 version=None, run_id=None, manipulate_parameters=None,
+                 outfile=None):
 
         self.executable = executable
-        self.command_string = ''
-
-        if command_dict is None:
-            self.command_dict = {}
-        else:
-            self.command_dict = command_dict
-
-        # nice to check that version is a string?
-        if isinstance(version, basestring):
-            self.version = version
-        else:
-            self.version = version()
+        self.version = version
         self.name = name
         self.outfile = outfile
 
@@ -50,42 +40,22 @@ class Tool():
         self.param_f = os.path.join(self.outdir, self.run_id +
                                     '_parameters.yaml')
 
-    @classmethod
-    def from_directory(cls, directory):
-
-        # basename is run id
-        directory = os.path.realpath(directory)
-        assert os.path.isdir(directory)
-        base, run_id = os.path.split(directory)
-
-        param_yaml = os.path.join(directory, run_id + '_parameters.yaml')
-        from_yaml = yaml.load(stream=open(param_yaml, 'r'))
-
-        return cls(executable=from_yaml['executable'],
-                   outdir=from_yaml['base_dir'],
-                   name=from_yaml['name'],
-                   version=from_yaml['version'],
-                   run_id=run_id,
-                   command_dict=from_yaml)
+        # manipulate parameters happens here (if defined)
+        if manipulate_parameters is not None:
+            parameters = manipulate_parameters(parameters)
+        self.tool_dict, self.command_string = self.parse_command(parameters)
 
     def __str__(self):
-        return "\n".join(['Outdir: ' + self.outdir,
-                          'Executable: ' + self.executable,
-                          yaml.dump(self.command_dict)])
+        return yaml.dump(self.tool_dict)
 
-    # GENERIC
+    # Method to create command and put all data in a yaml dict
     def parse_command(self, parameters):
-
-        # create command
-        command_dict = {'name': self.name,  'version': self.version,
-                        'run_id': self.run_id, 'base_dir': self.basedir,
-                        'executable': self.executable}
-        #  we can populate with defaults / allowed
 
         cl = re.compile('^-')
         last_was_key = False
         key = None
 
+        command_dict = {}
         for value in parameters:
             value = str(value)
             if cl.match(value):
@@ -99,14 +69,19 @@ class Tool():
                 else:
                     command_dict[key] = command_dict[key] + ';' + value
 
-        self.command_string = ' '.join([self.executable] + [str(x)
-                                                            for x in
-                                                            parameters])
-        self.command_dict = command_dict
+        command_string = ' '.join([self.executable] + [str(x) for x in
+                                                       parameters])
+
+        tool_dict = {'name': self.name,  'version': self.version,
+                     'run_id': self.run_id, 'base_dir': self.basedir,
+                     'executable': self.executable, 'command': command_dict,
+                     'parameters': parameters}
+
+        return tool_dict, command_string
 
     # GENERIC
     def dump_parameters(self):
-        yaml.dump(self.command_dict,
+        yaml.dump(self.tool_dict,
                   stream=open(self.param_f, 'w'))
 
     def delete(self):

@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 # internal
 import anhima
 import sh
-
+import os
+import re
+import yaml
+import algorithms
 
 def get_relevant_haplotpes(pat_idx, mat_idx, pro_idx, hap_gt, hap_pos):
 
@@ -203,3 +206,38 @@ def calc_windows(k, end, contig, start=1):
         i += k
 
     return regions
+
+
+def reconstruct_run(directory):
+    """
+    This function returns the correct tool object with appropriate settings
+    given an input directory
+    :param directory:
+    :return: an object of the correct type
+    """
+
+    # basename is run id
+    directory = os.path.realpath(directory)
+    assert os.path.isdir(directory)
+    base, run_id = os.path.split(directory)
+
+    param_yaml = os.path.join(directory, run_id + '_parameters.yaml')
+    from_yaml = yaml.load(stream=open(param_yaml, 'r'))
+
+    cls = getattr(algorithms, from_yaml['name'])
+
+    parameters = from_yaml.get('parameters', [])
+
+    # for backwards compatibility: grab values where
+    if len(parameters) == 0:
+        cl = re.compile('^-')
+        from_yaml.pop('--output-max', None)
+        for i, j in from_yaml.iteritems():
+            if cl.match(i):
+                parameters = parameters + [i, j]
+
+    return cls(parameters=parameters,
+               executable=from_yaml['executable'],
+               outdir=from_yaml['base_dir'],
+               version=from_yaml['version'],
+               run_id=run_id)
