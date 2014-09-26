@@ -84,7 +84,7 @@ class ShapeIt(tool.Tool):
 
         assert htype_gts.shape[1] == sample_data.shape[0]
 
-        return htype_gts, sample_data.ID2.tolist(), {'pos': htype_pos}
+        return htype_gts, sample_data.ID_2.tolist(), {'pos': htype_pos}
 
 
 # collection of methods for submission of MERLIN jobs with various defaults
