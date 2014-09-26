@@ -12,6 +12,7 @@ import re
 import yaml
 import algorithms
 
+
 def get_relevant_haplotpes(pat_idx, mat_idx, pro_idx, hap_gt, hap_pos):
 
     """ for a given indices returns the parental and progeny genotypes

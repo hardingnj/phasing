@@ -64,8 +64,6 @@ class ShapeIt(tool.Tool):
                            manipulate_parameters=self._manipulate_parameters)
 
     def parse_output(self):
-        # (optionally can be passed a output directory) or at least
-        # reconstructed
         # returns a genotype matrix in numpy format, matching anhima specs
         # and a list with the sample name of each column
         haplotype_data = pd.read_csv(self.haplotypes_f, sep=" ", header=None)
@@ -86,7 +84,7 @@ class ShapeIt(tool.Tool):
 
         assert htype_gts.shape[1] == sample_data.shape[0]
 
-        return htype_gts, sample_data.columns, {'pos': htype_pos}
+        return htype_gts, sample_data.ID2.tolist(), {'pos': htype_pos}
 
 
 # collection of methods for submission of MERLIN jobs with various defaults
