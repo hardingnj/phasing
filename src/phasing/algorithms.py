@@ -63,24 +63,32 @@ class ShapeIt(tool.Tool):
                            run_id=run_id,
                            manipulate_parameters=self._manipulate_parameters)
 
+        self.genotype_cache = os.path.join(self.outdir, 'genotypes.npy')
+        self.pos_cache = os.path.join(self.outdir, 'positions.npy')
+
     def parse_output(self):
         # returns a genotype matrix in numpy format, matching anhima specs
         # and a list with the sample name of each column
-        haplotype_data = pd.read_csv(self.haplotypes_f, sep=" ", header=None)
 
-        haplotype_data = haplotype_data.rename(columns={
-            0: 'contig', 1: 'id', 2: 'pos', 3: 'A1', 4: 'A2'})
+        # load haplotype data:
+        if os.path.isfile(self.genotype_cache):
+            htype_gts = np.load(self.genotype_cache)
+            htype_pos = np.load(self.pos_cache)
+        else:
+            haplotype_data = pd.read_csv(self.haplotypes_f, sep=" ", header=None)
+
+            haplotype_data = haplotype_data.rename(columns={
+                0: 'contig', 1: 'id', 2: 'pos', 3: 'A1', 4: 'A2'})
+            # store as 3D genotypes
+            htype_gts = np.array(haplotype_data.ix[:, 5:]).reshape((
+                haplotype_data.shape[0], -1, 2))
+            htype_pos = np.array(haplotype_data.pos.values)
+            np.save(self.genotype_cache, htype_gts)
+            np.save(self.pos_cache, htype_pos)
 
         sample_data = pd.read_csv(self.phased_f, sep=" ", header=0,
                                   skiprows=0)
         sample_data = sample_data.ix[1:]
-
-        # get ped genotypes into anhima numpy formats.
-        htype_pos = np.array(haplotype_data.pos.values)
-
-        # store as 3D genotypes
-        htype_gts = np.array(haplotype_data.ix[:, 5:]).reshape((
-            haplotype_data.shape[0], -1, 2))
 
         assert htype_gts.shape[1] == sample_data.shape[0]
 
