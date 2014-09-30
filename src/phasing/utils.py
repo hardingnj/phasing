@@ -11,6 +11,8 @@ import os
 import re
 import yaml
 import algorithms
+from itertools import izip
+import pandas as pd
 
 
 def get_relevant_haplotpes(pat_idx, mat_idx, pro_idx, hap_gt, hap_pos):
@@ -242,3 +244,68 @@ def reconstruct_run(directory):
                outdir=from_yaml['base_dir'],
                version=from_yaml['version'],
                run_id=run_id)
+
+
+# or genotypes/samples can be gathered from the run id. Also allows cacheing!
+def calculate_pedigree_switch_error(run, pedigree):
+    """
+    This function returns a tuple of panda dfs for mean and sd for each cross
+    :param run: a Tool object, containing a parse_output method
+    :param pedigree: a dict of pedigrees, with parent ids and progeny ids
+    :return:
+    """
+
+    mean_fn = os.path.join(run.outdir, 'switcherror_mean.csv')
+    sd_fn = os.path.join(run.outdir, 'switcherror_sd.csv')
+    if os.path.exists(mean_fn) and os.path.exists(sd_fn):
+        return pd.read_csv(mean_fn, index_col=0), \
+            pd.read_csv(sd_fn, index_col=0)
+
+    genotypes, samples, dic = run.parse_output()
+
+    # output: 2 x pd dataframe
+    # to do: make so in melted form: ie mat/pat as a indicator col.
+    columns = ['cross', 'maternal', 'paternal']
+    sd_df = pd.DataFrame(columns=columns)
+    mean_df = pd.DataFrame(columns=columns)
+    # row per cross, 2 columns, mat/pat, mean + sd
+    for cross in pedigree.keys():
+        parents = np.array([samples.index(p) for p in
+                            pedigree[cross]['parent']])
+        progeny = np.array([samples.index(p) for p in
+                            pedigree[cross]['progeny']])
+
+        # NB: critical assumption of genotypes here
+        maternal_haplotypes = genotypes[:, progeny, 0]
+        paternal_haplotypes = genotypes[:, progeny, 1]
+
+        # Again assumption of correct location of parents in dict
+        maternal_inheritance = anhima.ped.diploid_inheritance(
+            genotypes[:, parents[0]], maternal_haplotypes)
+        paternal_inheritance = anhima.ped.diploid_inheritance(
+            genotypes[:, parents[1]], paternal_haplotypes)
+
+        m_switcherror = calculate_switch_error(maternal_inheritance)
+        p_switcherror = calculate_switch_error(paternal_inheritance)
+
+        mean_df.loc[len(mean_df.index)] = (cross,
+                                           m_switcherror.mean(),
+                                           p_switcherror.mean())
+        sd_df.loc[len(sd_df.index)] = (cross,
+                                       m_switcherror.std(),
+                                       p_switcherror.std())
+
+    mean_df.to_csv(mean_fn)
+    sd_df.to_csv(sd_fn)
+    return mean_df, sd_df
+
+
+def calculate_switch_error(inheritance):
+
+    # only 1s and 2s are relevant
+    exclude = np.any(inheritance < 3, axis=1)
+    inheritance = np.compress(exclude, inheritance, axis=0)
+
+    switch_sums = map(lambda (x, y): np.array(x != y, dtype='int8'),
+                      izip(inheritance[1:], inheritance[0:-1]))
+    return np.array(switch_sums).sum(axis=0)/(switch_sums.shape[0] - 1)
