@@ -247,7 +247,7 @@ def reconstruct_run(directory):
 
 
 # or genotypes/samples can be gathered from the run id. Also allows cacheing!
-def calculate_pedigree_switch_error(run, pedigree):
+def calculate_pedigree_switch_error(run, pedigree, use_cache=True):
     """
     This function returns a tuple of panda dfs for mean and sd for each cross
     :param run: a Tool object, containing a parse_output method
@@ -257,7 +257,7 @@ def calculate_pedigree_switch_error(run, pedigree):
 
     mean_fn = os.path.join(run.outdir, 'switcherror_mean.csv')
     sd_fn = os.path.join(run.outdir, 'switcherror_sd.csv')
-    if os.path.exists(mean_fn) and os.path.exists(sd_fn):
+    if os.path.exists(mean_fn) and os.path.exists(sd_fn) and use_cache:
         return pd.read_csv(mean_fn, index_col=0), \
             pd.read_csv(sd_fn, index_col=0)
 
@@ -401,3 +401,4 @@ def plot_pedigree_haplotype_inheritance(run, pedigree,
                                          ax=ax)
 
         plt.savefig(filename, bbox_inches='tight')
+        plt.close()
