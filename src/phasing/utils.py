@@ -309,7 +309,7 @@ def calculate_switch_error(inheritance):
     switch_sums = map(lambda (x, y): np.array(x != y, dtype='int8'),
                       izip(inheritance[1:], inheritance[0:-1]))
 
-    return np.array(switch_sums).sum(axis=0)/(len(switch_sums) - 1)
+    return np.array(switch_sums).sum(axis=0)/float(len(switch_sums) - 1)
 
 
 def plot_pedigree_haplotype_inheritance(run, pedigree,
