@@ -308,4 +308,96 @@ def calculate_switch_error(inheritance):
 
     switch_sums = map(lambda (x, y): np.array(x != y, dtype='int8'),
                       izip(inheritance[1:], inheritance[0:-1]))
-    return np.array(switch_sums).sum(axis=0)/(switch_sums.shape[0] - 1)
+
+    return np.array(switch_sums).sum(axis=0)/(len(switch_sums) - 1)
+
+
+def plot_pedigree_haplotype_inheritance(run, pedigree,
+                                        inheritance_colors=('red', 'blue',
+                                                            'green', 'orange',
+                                                            'black', 'yellow',
+                                                            'white'),
+                                        spacer=0.02,
+                                        panel_size_ratio=np.array([3.0, 3.0,
+                                                                   1.0, 1.0]),
+                                        ):
+    """
+    Creates a plot for each pedigree in the pedigree dict
+    :param run: an instance of Tool
+    :param pedigree: a dict
+    :param inheritance_colors: colour scheme
+    :param spacer: gap between panels
+    :param panel_size_ratio: relative size of each panel
+    :return:
+    """
+    genotypes, samples, dic = run.parse_output()
+    panel_heights = panel_size_ratio/panel_size_ratio.sum() - spacer
+
+    out_dir = os.path.join(run.outdir, 'plots')
+    if not os.path.isdir(out_dir):
+        os.mkdir(out_dir)
+
+    for cross in pedigree.keys():
+        # skip if fn exists
+        filename = os.path.join(out_dir, cross + '.png')
+        if os.path.isfile(filename):
+            continue
+
+        parents = np.array([samples.index(p) for p in
+                            pedigree[cross]['parent']])
+        progeny = np.array([samples.index(p) for p in
+                            pedigree[cross]['progeny']])
+
+        is_het = anhima.gt.is_het(genotypes[:, parents[0]]) | \
+            anhima.gt.is_het(genotypes[:, parents[1]])
+
+        mother = np.compress(is_het, genotypes[:, parents[0]], axis=0)
+        father = np.compress(is_het, genotypes[:, parents[1]], axis=0)
+
+        # NB: critical assumption of genotypes here
+        maternal_haplotypes = np.compress(is_het,
+                                          genotypes[:, progeny, 0],
+                                          axis=0)
+        paternal_haplotypes = np.compress(is_het,
+                                          genotypes[:, progeny, 1],
+                                          axis=0)
+
+        positions = np.compress(is_het, dic['pos'], axis=0)
+
+        # Again assumption of correct location of parents in dict
+        maternal_inheritance = anhima.ped.diploid_inheritance(
+            mother, maternal_haplotypes)
+        paternal_inheritance = anhima.ped.diploid_inheritance(
+            father, paternal_haplotypes)
+
+        axes = [(0, n*spacer + panel_heights[:n].sum(),
+                 1, panel_heights[n]) for n in range(panel_heights.size)]
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        progeny_labels = [p for p in pedigree[cross]['progeny'] if p in samples]
+        progeny_labels.reverse()
+
+        # (left, bottom, width, height)
+        ax = fig.add_axes(axes.pop())
+        anhima.loc.plot_windowed_variant_density(positions,
+                                                 window_size=50000, ax=ax)
+
+        ax = fig.add_axes(axes.pop())
+        anhima.loc.plot_variant_locator(positions, step=1000, ax=ax, flip=True)
+
+        ax = fig.add_axes(axes.pop())
+        anhima.gt.plot_discrete_calldata(paternal_inheritance,
+                                         colors=inheritance_colors,
+                                         labels=progeny_labels,
+                                         states=range(1, 8),
+                                         ax=ax)
+
+        ax = fig.add_axes(axes.pop())
+        anhima.gt.plot_discrete_calldata(maternal_inheritance,
+                                         colors=inheritance_colors,
+                                         labels=progeny_labels,
+                                         states=range(1, 8),
+                                         ax=ax)
+
+        plt.savefig(filename, bbox_inches='tight')
