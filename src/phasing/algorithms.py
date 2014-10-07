@@ -66,7 +66,7 @@ class DuoHMM(tool.Tool):
 
         # looks for expected files, if not found renames them.
         # (For backwards compatability)
-        if not os.path.isfile(os.path.join(self.basedir, self.run_id, 'haps')):
+        if not os.path.isfile(os.path.join(self.basedir, self.run_id, '.haps')):
             os.rename(os.path.join(self.basedir, 'haplotypes'),
                       os.path.join(self.basedir, self.run_id + '.haps'))
             os.rename(os.path.join(self.basedir, 'phased'),
