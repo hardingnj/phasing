@@ -318,8 +318,7 @@ def plot_ped_haplotype_inheritance(run, pedigree,
                                                        'black', 'yellow',
                                                        'white'),
                                    spacer=0.02,
-                                   panel_height_ratios=np.array([3.0, 3.0,
-                                                                 1.0, 1.0])):
+                                   panel_height_ratios=(3.0, 3.0, 1.0, 1.0)):
     """
     Creates a plot for each pedigree in the pedigree dict
     :param run: an instance of Tool
@@ -331,7 +330,8 @@ def plot_ped_haplotype_inheritance(run, pedigree,
     """
 
     genotypes, samples, dic = run.parse_output()
-    panel_heights = panel_height_ratios/panel_height_ratios.sum() - spacer
+    panel_heights = np.array(panel_height_ratios)/np.sum(panel_height_ratios)\
+        - spacer
 
     out_dir = os.path.join(run.outdir, 'plots')
     if not os.path.isdir(out_dir):
@@ -355,8 +355,12 @@ def plot_ped_haplotype_inheritance(run, pedigree,
         father = np.compress(is_het, genotypes[:, parents[1]], axis=0)
 
         # NB: critical assumption of genotypes here
-        maternal_haplotypes = np.compress(is_het, genotypes[:, progeny, 0], axis=0)
-        paternal_haplotypes = np.compress(is_het, genotypes[:, progeny, 1], axis=0)
+        maternal_haplotypes = np.compress(is_het,
+                                          genotypes[:, progeny, 0],
+                                          axis=0)
+        paternal_haplotypes = np.compress(is_het,
+                                          genotypes[:, progeny, 1],
+                                          axis=0)
 
         positions = np.compress(is_het, dic['pos'], axis=0)
 
