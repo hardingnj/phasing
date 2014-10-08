@@ -406,3 +406,22 @@ def plot_ped_haplotype_inheritance(run, pedigree,
 
         plt.savefig(filename, bbox_inches='tight')
         plt.close()
+
+
+def read_pedigree_table(path, pedigree_id_col='cross', status_id_col='role',
+                        sep="\t"):
+    # This file defines the known pedigrees we are about to test.
+    # expecting data in the format of:
+    # id<TAB>cross<TAB>role
+    # A1<TAB>19-2<TAB>parent
+    ped_tbl = pd.read_csv(path, sep=sep, index_col=1)
+
+    pedigree = dict()
+    for x in set(ped_tbl[pedigree_id_col]):
+        pedigree[x] = {k: [] for k in set(ped_tbl[status_id_col])}
+
+    # loop through each row of table
+    for sid, row in ped_tbl.iterrows():
+        pedigree[row[pedigree_id_col]][row[status_id_col]].append(sid)
+
+    return pedigree, ped_tbl
