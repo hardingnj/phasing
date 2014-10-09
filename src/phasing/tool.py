@@ -54,6 +54,7 @@ class Tool():
         cl = re.compile('^-')
         last_was_key = False
         key = None
+        parameters = [str(x) for x in parameters]
 
         command_dict = {}
         for value in parameters:
@@ -69,8 +70,7 @@ class Tool():
                 else:
                     command_dict[key] = command_dict[key] + ';' + value
 
-        command_string = ' '.join([self.executable] + [str(x) for x in
-                                                       parameters])
+        command_string = ' '.join([self.executable] + parameters)
 
         tool_dict = {'name': self.name,  'version': self.version,
                      'run_id': self.run_id, 'base_dir': self.basedir,
