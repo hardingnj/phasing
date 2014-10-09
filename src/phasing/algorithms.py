@@ -73,7 +73,7 @@ class DuoHMM(tool.Tool):
                           os.path.join(self.basedir, self.run_id + '.haps'))
                 os.rename(os.path.join(self.basedir, 'phased'),
                           os.path.join(self.basedir, self.run_id + '.sample'))
-            except IOError:
+            except OSError:
                 pass
 
         for f in ('-H', '-O', '-G', '-R'):
