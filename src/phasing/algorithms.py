@@ -68,10 +68,13 @@ class DuoHMM(tool.Tool):
         # (For backwards compatability)
         if not os.path.isfile(os.path.join(self.basedir,
                                            self.run_id + '.haps')):
-            os.rename(os.path.join(self.basedir, 'haplotypes'),
-                      os.path.join(self.basedir, self.run_id + '.haps'))
-            os.rename(os.path.join(self.basedir, 'phased'),
-                      os.path.join(self.basedir, self.run_id + '.sample'))
+            try:
+                os.rename(os.path.join(self.basedir, 'haplotypes'),
+                          os.path.join(self.basedir, self.run_id + '.haps'))
+                os.rename(os.path.join(self.basedir, 'phased'),
+                          os.path.join(self.basedir, self.run_id + '.sample'))
+            except IOError:
+                pass
 
         for f in ('-H', '-O', '-G', '-R'):
             assert f not in parameters
