@@ -7,25 +7,20 @@ import utils
 import shutil
 import sh
 import uuid
-
-
-# TO DO
-# Add reconstruct run function, so that run is recreated from filepath
-# Needs to detect whether shapeIt or Merlin etc. Class name can be added to
-# parameters file
-# checkout: http://stackoverflow.com/questions/141545/overloading-init-in-python
+import hashlib
 
 
 class Tool():
 
     def __init__(self, parameters=None, executable=None, outdir=None, name=None,
                  version=None, run_id=None, manipulate_parameters=None,
-                 outfile=None):
+                 outfile=None, checksum=None):
 
         self.executable = executable
         self.version = version
         self.name = name
         self.outfile = outfile
+        self.checksum_file = None
 
         if run_id is None:
             self.run_id = name + '_' + str(uuid.uuid4().get_hex().upper()[0:8])
@@ -45,8 +40,23 @@ class Tool():
             parameters = manipulate_parameters(parameters)
         self.tool_dict, self.command_string = self.parse_command(parameters)
 
+        # get checksum
+        if checksum is not None:
+            self.tool_dict['checksum'] = Tool.md5_for_file(checksum())
+
     def __str__(self):
         return yaml.dump(self.tool_dict)
+
+    @staticmethod
+    def md5_for_file(f, block_size=2**20):
+        fh = open(f, 'rb')
+        md5 = hashlib.md5()
+        while True:
+            data = fh.read(block_size)
+            if not data:
+                break
+            md5.update(data)
+        return md5.digest()
 
     # Method to create command and put all data in a yaml dict
     def parse_command(self, parameters):

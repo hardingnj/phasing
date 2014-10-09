@@ -115,6 +115,9 @@ class ShapeIt(tool.Tool):
         # now we can call the parse method to init command string and dict
         return parameters + ['--output-max', self.haplotypes_f, self.phased_f]
 
+    def _checksum(self):
+        return self.tool_dict['command']['-B'] + '.bed'
+
     def __init__(self, parameters, outdir, executable='shapeit',
                  version=None, run_id=None):
 
@@ -128,7 +131,8 @@ class ShapeIt(tool.Tool):
                            name=ShapeIt.__name__,
                            version=version,
                            run_id=run_id,
-                           manipulate_parameters=self._manipulate_parameters)
+                           manipulate_parameters=self._manipulate_parameters,
+                           checksum=self._checksum)
 
     def parse_output(self):
         return ShapeIt.process_shapeit_output(self.haplotypes_f, self.phased_f)
