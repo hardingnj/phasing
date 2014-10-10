@@ -247,13 +247,13 @@ def reconstruct_run(directory):
 
 
 # or genotypes/samples can be gathered from the run id. Also allows cacheing!
-def calculate_pedigree_switch_error(run, pedigree, use_cache=True, *args):
+def calculate_pedigree_switch_error(run, pedigree, use_cache=True, **kwargs):
     """
     This function returns a tuple of panda dfs for mean and sd for each cross
     :param run: a Tool object, containing a parse_output method
     :param pedigree: a dict of pedigrees, with parent ids and progeny ids
     :param use_cache: whether to used cached results
-    :param *args passed to run.parse_output
+    :param **kwargs passed to run.parse_output
     :return:
     """
 
@@ -263,7 +263,7 @@ def calculate_pedigree_switch_error(run, pedigree, use_cache=True, *args):
         return pd.read_csv(mean_fn, index_col=0), \
             pd.read_csv(sd_fn, index_col=0)
 
-    genotypes, samples, dic = run.parse_output(*args)
+    genotypes, samples, dic = run.parse_output(**kwargs)
 
     # output: 2 x pd dataframe
     # to do: make so in melted form: ie mat/pat as a indicator col.
