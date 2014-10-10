@@ -257,8 +257,8 @@ def calculate_pedigree_switch_error(run, pedigree, use_cache=True, **kwargs):
     :return:
     """
 
-    mean_fn = os.path.join(run.outdir, 'switcherror_mean.csv')
-    sd_fn = os.path.join(run.outdir, 'switcherror_sd.csv')
+    mean_fn = os.path.join('/tmp', run.run_id + 'switcherror_mean.csv')
+    sd_fn = os.path.join('/tmp', run.run_id + 'switcherror_sd.csv')
     if os.path.exists(mean_fn) and os.path.exists(sd_fn) and use_cache:
         return pd.read_csv(mean_fn, index_col=0), \
             pd.read_csv(sd_fn, index_col=0)
