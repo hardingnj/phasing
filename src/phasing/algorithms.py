@@ -140,21 +140,18 @@ class ShapeIt(tool.Tool):
                            manipulate_parameters=self._manipulate_parameters,
                            checksum=self._checksum)
 
-        self.ped_corr_haplotypes_f = None
-        self.ped_corr_samples_f = None
+        self.duohmm = None
 
     def parse_output(self):
-        return ShapeIt.process_shapeit_output(self.haplotypes_f, self.phased_f)
+        if self.duohmm is not None:
+            return ShapeIt.process_shapeit_output(self.duohmm.haplotypes_f,
+                                                  self.duohmm.samples_f)
+        else:
+            return ShapeIt.process_shapeit_output(self.haplotypes_f,
+                                                  self.phased_f)
 
     def attach_duohmm(self, duohmm=None):
-        self.ped_corr_haplotypes_f = duohmm.haplotypes_f
-        self.ped_corr_samples_f = duohmm.phased_f
-
-    def parse_duo_hmm_output(self, duohmm_obj=None):
-        if duohmm_obj is not None:
-            self.attach_duohmm(duohmm_obj)
-        return ShapeIt.process_shapeit_output(self.ped_corr_haplotypes_f,
-                                              self.ped_corr_samples_f)
+        self.duohmm = duohmm
 
     @staticmethod
     def process_shapeit_output(haplotypes, samples):
