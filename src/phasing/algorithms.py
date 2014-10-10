@@ -142,8 +142,8 @@ class ShapeIt(tool.Tool):
 
         self.duohmm = None
 
-    def parse_output(self):
-        if self.duohmm is not None:
+    def parse_output(self, ignore_duohmm=False):
+        if (ignore_duohmm is False) and (self.duohmm is not None):
             return ShapeIt.process_shapeit_output(self.duohmm.haplotypes_f,
                                                   self.duohmm.samples_f)
         else:
