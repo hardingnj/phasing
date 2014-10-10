@@ -20,7 +20,7 @@ class Tool():
         self.version = version
         self.name = name
         self.outfile = outfile
-        self.checksum_file = None
+        self.checksum_func = checksum
 
         if run_id is None:
             self.run_id = name + '_' + str(uuid.uuid4().get_hex().upper()[0:8])
@@ -39,10 +39,6 @@ class Tool():
         if manipulate_parameters is not None:
             parameters = manipulate_parameters(parameters)
         self.tool_dict, self.command_string = self.parse_command(parameters)
-
-        # get checksum
-        if checksum is not None:
-            self.tool_dict['checksum'] = Tool.md5_for_file(checksum())
 
     def __str__(self):
         return yaml.dump(self.tool_dict)
@@ -113,5 +109,9 @@ class Tool():
                                commands=['cd ' + self.outdir,
                                          self.command_string],
                                outfile=self.outfile)
+
+        # get checksum
+        if self.checksum_func is not None:
+            self.tool_dict['checksum'] = Tool.md5_for_file(self.checksum_func())
 
         print sh.qsub(qsub_parameters + list(args) + [self.script_f])
