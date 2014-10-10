@@ -143,12 +143,14 @@ class ShapeIt(tool.Tool):
         self.duohmm = None
 
     def parse_output(self, ignore_duohmm=False):
-        if (ignore_duohmm is False) and (self.duohmm is not None):
-            return ShapeIt.process_shapeit_output(self.duohmm.haplotypes_f,
-                                                  self.duohmm.phased_f)
-        else:
+        if ignore_duohmm or self.duohmm is None:
+            print ignore_duohmm
+            print self.duohmm
             return ShapeIt.process_shapeit_output(self.haplotypes_f,
                                                   self.phased_f)
+        else:
+            return ShapeIt.process_shapeit_output(self.duohmm.haplotypes_f,
+                                                  self.duohmm.phased_f)
 
     def attach_duohmm(self, duohmm=None):
         self.duohmm = duohmm
