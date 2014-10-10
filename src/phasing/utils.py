@@ -263,7 +263,7 @@ def calculate_pedigree_switch_error(run, pedigree, use_cache=True, *args):
         return pd.read_csv(mean_fn, index_col=0), \
             pd.read_csv(sd_fn, index_col=0)
 
-    genotypes, samples, dic = run.parse_output(args)
+    genotypes, samples, dic = run.parse_output(*args)
 
     # output: 2 x pd dataframe
     # to do: make so in melted form: ie mat/pat as a indicator col.
