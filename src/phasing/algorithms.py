@@ -150,8 +150,9 @@ class ShapeIt(tool.Tool):
         self.ped_corr_haplotypes_f = duohmm.haplotypes_f
         self.ped_corr_samples_f = duohmm.phased_f
 
-    def parse_duo_hmm_output(self, duohmm_obj):
-        self.attach_duohmm(duohmm_obj)
+    def parse_duo_hmm_output(self, duohmm_obj=None):
+        if duohmm_obj is not None:
+            self.attach_duohmm(duohmm_obj)
         return ShapeIt.process_shapeit_output(self.ped_corr_haplotypes_f,
                                               self.ped_corr_samples_f)
 
