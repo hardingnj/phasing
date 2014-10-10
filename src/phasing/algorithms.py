@@ -21,6 +21,16 @@ import numpy as np
 
 # data/shapeit/version/
 
+# what would happen if I make duoHMM inherit from shape it:
+# does it hold for multiple algs?
+# better to pass
+
+
+# needs
+# would like shapeIt run to be aware that duoHMM has been run on it, so can
+# parse results
+# duo hmm needs to be aware of the parameters of shape it
+
 
 class DuoHMM(tool.Tool):
 
@@ -84,10 +94,6 @@ class DuoHMM(tool.Tool):
                              '-G', self.genotype_errors,
                              '-R', self.recombination_map]
 
-    def parse_output(self):
-        return ShapeIt.process_shapeit_output(self.haplotypes_f,
-                                              self.phased_f)
-
 
 class ShapeIt(tool.Tool):
 
@@ -134,8 +140,20 @@ class ShapeIt(tool.Tool):
                            manipulate_parameters=self._manipulate_parameters,
                            checksum=self._checksum)
 
+        self.ped_corr_haplotypes_f = None
+        self.ped_corr_samples_f = None
+
     def parse_output(self):
         return ShapeIt.process_shapeit_output(self.haplotypes_f, self.phased_f)
+
+    def attach_duohmm(self, duohmm=None):
+        self.ped_corr_haplotypes_f = duohmm.haplotypes_f
+        self.ped_corr_samples_f = duohmm.phased_f
+
+    def parse_duo_hmm_output(self, duohmm_obj):
+        self.attach_duohmm(duohmm_obj)
+        return ShapeIt.process_shapeit_output(self.ped_corr_haplotypes_f,
+                                              self.ped_corr_samples_f)
 
     @staticmethod
     def process_shapeit_output(haplotypes, samples):
