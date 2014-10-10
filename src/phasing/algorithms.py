@@ -145,7 +145,7 @@ class ShapeIt(tool.Tool):
     def parse_output(self, ignore_duohmm=False):
         if (ignore_duohmm is False) and (self.duohmm is not None):
             return ShapeIt.process_shapeit_output(self.duohmm.haplotypes_f,
-                                                  self.duohmm.samples_f)
+                                                  self.duohmm.phased_f)
         else:
             return ShapeIt.process_shapeit_output(self.haplotypes_f,
                                                   self.phased_f)
