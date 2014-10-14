@@ -52,7 +52,7 @@ class Tool():
             if not data:
                 break
             md5.update(data)
-        return md5.digest()
+        return str(md5.digest())
 
     # Method to create command and put all data in a yaml dict
     def parse_command(self, parameters):
