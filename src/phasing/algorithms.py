@@ -122,7 +122,14 @@ class ShapeIt(tool.Tool):
         return parameters + ['--output-max', self.haplotypes_f, self.phased_f]
 
     def _checksum(self):
-        return self.tool_dict['command']['-B'] + '.bed'
+        # can accept several inputs so
+        d = self.tool_dict['command']
+        if '-B' in d:
+            return d['-B'] + '.bed'
+        elif '--input-vcf' in d:
+            return d['--input-vcf']
+        else:
+            return None
 
     def __init__(self, parameters, outdir, executable='shapeit',
                  version=None, run_id=None):
