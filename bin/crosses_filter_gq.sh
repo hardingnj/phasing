@@ -4,6 +4,11 @@
 set -e
 set -o pipefail
 
+if test -z "$1"
+	then echo "Error. GQ not specified"
+	exit 1
+fi
+
 GQ=$1
 
 RAW=/data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/3L_ag-cross.vcf.gz
