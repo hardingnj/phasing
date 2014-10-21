@@ -68,7 +68,7 @@ class DuoHMM(tool.Tool):
         self.inputroot = os.path.join(self.basedir, self.run_id)
 
         self.outfile = os.path.join(self.outdir, self.run_id)
-        self.haplotypes_f = self.outfile + '.haps'
+        self.haplotypes_f = self.outfile + '.haps.gz'
         self.phased_f = self.outfile + '.sample'
 
         self.genotype_errors = os.path.join(self.outdir, 'genotype_errors.txt')
@@ -114,7 +114,7 @@ class ShapeIt(tool.Tool):
         # function edits parameters before they are passed to Tool
         # handy for auto determining outputs etc
         # automatically work out output filenames.
-        self.haplotypes_f = os.path.join(self.outdir, self.run_id + '.haps')
+        self.haplotypes_f = os.path.join(self.outdir, self.run_id + '.haps.gz')
         self.phased_f = os.path.join(self.outdir, self.run_id + '.sample')
         assert '--output-max' not in parameters
 
