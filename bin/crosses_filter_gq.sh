@@ -16,7 +16,7 @@ OUTDIR=/data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/ca
 
 OUT="${OUTDIR}/3L_ag-cross.${GQ}"
 
-vcftools --gzvcf ${RAW} --minGQ ${GQ} --recode --out {OUT}
+vcftools --gzvcf ${RAW} --minGQ ${GQ} --recode --out ${OUT}
 bgzip ${OUT}.recode.vcf
 tabix -p vcf ${OUT}.recode.vcf.gz
 touch ${OUT}.recode.vcf.gz.ok
