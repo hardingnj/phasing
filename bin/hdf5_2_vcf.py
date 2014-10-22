@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(
     description='Tool to produce a vcf file from an hdf5 file')
 
 parser.add_argument('input', help='input hdf5 file')
-parser.add_argument('output', help='output vcf file')
+parser.add_argument('output', help='output file stem')
 
 parser.add_argument('--keepmissing', '-m', action='store_true', default=False)
 
@@ -24,12 +24,7 @@ h5_handle = h5py.File(args.input, mode='r')
 
 lookup = {-1: './.', 0: '0/0', 1: '0/1', 2: '1/1'}
 
-f = open(args.output, 'w')
-#f.write('hi there\n')
-
-# python will convert \n to os.linesep
-
-# you can omit in most cases as the destructor will call if
+f = open(args.output + '.vcf', 'w')
 
 f.write(r'##fileformat=VCFv4.1' + "\n")
 f.write(r'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' + "\n")
