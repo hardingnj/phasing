@@ -34,7 +34,7 @@ f = open(args.output, 'w')
 f.write(r'##fileformat=VCFv4.1' + "\n")
 f.write(r'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' + "\n")
 f.write(r'##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in '
-        r'\genotypes, for each ALT allele, in the same order as listed">' +
+        r'genotypes, for each ALT allele, in the same order as listed">' +
         "\n")
 
 f.write(r'##contig=<ID=2L,length=49364325>' + "\n")
@@ -47,7 +47,7 @@ f.write(r'##contig=<ID=Y_unplaced,length=237045>' + "\n")
 f.write(r'##reference=file:///data/anopheles/ag1000g/data/genome/AgamP3'
         r'/Anopheles-gambiae-PEST_CHROMOSOMES_AgamP3.fa' + "\n")
 
-reqd = ('CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT')
+reqd = ('#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT')
 
 # rememeber to act on all 1st level keys!
 for k in h5_handle.keys():

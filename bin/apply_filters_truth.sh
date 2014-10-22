@@ -14,13 +14,17 @@ GQ=$1
 echo $GQ
 RAW=/data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/h5/3L_ag-cross.h5
 OUTDIR=/data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/callsets/autosome/truth/vcf
-BIN=/home/njh/phasing/bin/
+BIN=/home/njh/git/phasing/bin
 PED=/home/njh/git/ag-crosses/meta/tbl_sample_ped.txt
 
 OUT="${OUTDIR}/3L_ag-cross.${GQ}"
 
-/home/njh/pyenv/science/bin/python ${BIN}/filter_hdf5.py ${RAW} ${OUT}.h5 -Q 30 -P ${PED}
+/home/njh/pyenv/science/bin/python ${BIN}/filter_hdf5.py ${RAW} ${OUT}.h5 -Q ${GQ} -P ${PED}
+touch ${OUT}.h5.ok
+
 /home/njh/pyenv/science/bin/python ${BIN}/hdf5_2_vcf.py ${OUT}.h5 ${OUT}.vcf
 bgzip ${OUT}.vcf
 tabix -p vcf ${OUT}.vcf.gz
 touch ${OUT}.vcf.gz.ok
+
+rm ${OUT}.h5
