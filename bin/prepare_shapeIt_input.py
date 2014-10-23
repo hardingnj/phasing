@@ -70,7 +70,7 @@ ph.utils.create_sh_script(
                                     hdf5_stems['truth']),
                    ped='-P ' + config['ped_file']))
 
-sh.qsub('-l', 'h_vmem=16G', '-N', 'prepare_truth', '-j', 'y',
+sh.qsub('-l', config['truth_prep_mem'], '-N', 'prepare_truth', '-j', 'y',
         '-S', '/bin/bash', '-o', dirs['truth']['log'],
         os.path.join(dirs['truth']['script'], 'prepare.sh'))
 
@@ -80,7 +80,7 @@ ph.utils.create_sh_script(
     create_command(raw=hdf5_raw['eval'], gq=config['gq_threshold'],
                    out=os.path.join(dirs['eval']['vcf'], hdf5_stems['eval'])))
 
-sh.qsub('-l', 'h_vmem=16G', '-N', 'prepare_eval', '-j', 'y',
+sh.qsub('-l', config['eval_prep_mem'], '-N', 'prepare_eval', '-j', 'y',
         '-S', '/bin/bash', '-o', dirs['eval']['log'],
         os.path.join(dirs['eval']['script'], 'prepare.sh'))
 
