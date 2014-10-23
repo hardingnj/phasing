@@ -1,0 +1,9 @@
+# set some parameters. Probably will set these a config file.
+gq_threshold: 30
+pyenv: /home/njh/pyenv/science/bin/python
+bin_dir: /home/njh/git/phasing/bin
+ped_file: /home/njh/git/ag-crosses/meta/tbl_sample_ped.txt
+outdir: /data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/callsets/autosome
+# define raw hdf5 files.
+eval_h5: /data/anopheles/ag1000g/data/1000g_09_13/release/AR2/ag1000g.phase1.AR2.3L.PASS.h5
+truth_h5: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/h5/3L_ag-cross.h5
