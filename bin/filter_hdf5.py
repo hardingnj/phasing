@@ -75,6 +75,7 @@ for k in unfiltered_h5.keys():
         mendel_err_positions = np.compress(variant_mask, positions)
         for x in mendel_err_positions:
             fh.write(k + "\t" + str(x) + "\n")
+        fh.close()
 
     dset = filtered_h5.create_dataset(
         os.path.join(k, 'calldata', 'genotype'),
@@ -82,5 +83,3 @@ for k in unfiltered_h5.keys():
         chunks=(1000, 10, 2),
         compression='gzip',
         compression_opts=9)
-
-fh.close()

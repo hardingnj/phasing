@@ -36,6 +36,7 @@ def create_command(raw=None, gq=None, out=None, ped=''):
            bgzip_command.format(OUT=out),
            tabix_command.format(OUT=out),
            validate_command.format(OUT=out),
+           touch_command.format(FILE=out+'.vcf.gz.ok'),
            rm_command.format(FILE=out+'.h5')]
 
     return cmd
@@ -50,8 +51,8 @@ def create_command(raw=None, gq=None, out=None, ped=''):
 # define raw hdf5 files.
 hdf5_raw = {'eval': config['eval_h5'], 'truth': config['truth_h5']}
 
-hdf5_stems = {k: os.path.splitext(os.path.basename(v))[0]
-              for k, v in hdf5_raw.iteritems()}
+hdf5_stems = {k: os.path.splitext(os.path.basename(v))[0] + '.' + config[
+    'gq_threshold'] for k, v in hdf5_raw.iteritems()}
 
 # make the /vcf dir, script dir and the log dir in both eval/truth
 assert os.path.isdir(config['outdir'])
@@ -70,9 +71,11 @@ ph.utils.create_sh_script(
                                     hdf5_stems['truth']),
                    ped='-P ' + config['ped_file']))
 
-sh.qsub('-l', config['truth_prep_mem'], '-N', 'prepare_truth', '-j', 'y',
-        '-S', '/bin/bash', '-o', dirs['truth']['log'],
-        os.path.join(dirs['truth']['script'], 'prepare.sh'))
+if not os.path.isfile(os.path.join(dirs['truth']['vcf'],
+                                   hdf5_stems['eval'] + '.vcf.gz.ok')):
+    sh.qsub('-l', config['truth_prep_mem'], '-N', 'prepare_truth', '-j', 'y',
+            '-S', '/bin/bash', '-o', dirs['truth']['log'],
+            os.path.join(dirs['truth']['script'], 'prepare.sh'))
 
 ### EVAL SET ###################################################################
 ph.utils.create_sh_script(
@@ -80,9 +83,11 @@ ph.utils.create_sh_script(
     create_command(raw=hdf5_raw['eval'], gq=config['gq_threshold'],
                    out=os.path.join(dirs['eval']['vcf'], hdf5_stems['eval'])))
 
-sh.qsub('-l', config['eval_prep_mem'], '-N', 'prepare_eval', '-j', 'y',
-        '-S', '/bin/bash', '-o', dirs['eval']['log'],
-        os.path.join(dirs['eval']['script'], 'prepare.sh'))
+if not os.path.isfile(os.path.join(dirs['eval']['vcf'],
+                                   hdf5_stems['eval'] + '.vcf.gz.ok')):
+    sh.qsub('-l', config['eval_prep_mem'], '-N', 'prepare_eval', '-j', 'y',
+            '-S', '/bin/bash', '-o', dirs['eval']['log'],
+            os.path.join(dirs['eval']['script'], 'prepare.sh'))
 
 # not add the ped file for the eval set.
 # in both cases I want to calculate the PIRs. This can be left a bit.
