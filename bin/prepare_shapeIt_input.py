@@ -51,8 +51,8 @@ def create_command(raw=None, gq=None, out=None, ped=''):
 # define raw hdf5 files.
 hdf5_raw = {'eval': config['eval_h5'], 'truth': config['truth_h5']}
 
-hdf5_stems = {k: os.path.splitext(os.path.basename(v))[0] + '.' + config[
-    'gq_threshold'] for k, v in hdf5_raw.iteritems()}
+hdf5_stems = {k: os.path.splitext(os.path.basename(v))[0] + '.' +
+              str(config['gq_threshold']) for k, v in hdf5_raw.iteritems()}
 
 # make the /vcf dir, script dir and the log dir in both eval/truth
 assert os.path.isdir(config['outdir'])
