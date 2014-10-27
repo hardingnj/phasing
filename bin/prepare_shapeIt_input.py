@@ -26,7 +26,7 @@ def create_command(raw=None, gq=None, out=None, ped=''):
         '/hdf5_2_vcf.py {H5} {OUT}'
     touch_command = 'touch {FILE}'
     bgzip_command = 'bgzip {OUT}.vcf'
-    tabix_command = 'tabix -p vcf {OUT}.vcf.gz'
+    tabix_command = 'tabix -fp vcf {OUT}.vcf.gz'
     validate_command = 'vcf-validator {OUT}.vcf.gz'
     rm_command = 'rm {FILE}'
 
