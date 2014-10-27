@@ -63,6 +63,6 @@ for k in h5_handle.keys():
             continue
 
         line = "\t".join([k, str(pos), '.', ref, alt, '0', '.', '.',
-                          'GT'] + [lookup[s] for s in gt])
+                          'GT'] + [lookup[int(s)] for s in gt])
         f.write(line + "\n")
 f.close()
