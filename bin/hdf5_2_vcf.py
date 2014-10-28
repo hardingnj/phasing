@@ -16,7 +16,9 @@ parser.add_argument('input', help='input hdf5 file')
 parser.add_argument('output', help='output file stem')
 
 parser.add_argument('--keepmissing', '-m', action='store_true', default=False)
-
+parser.add_argument('--cutoff', '-c', action='store', default=0.1,
+                    dest='missingcutoff', type=float,
+                    help='Maximum missing GTs tolerated in a sample')
 # to do: add option to only filter individual crosses.
 args = parser.parse_args()
 
@@ -45,10 +47,28 @@ f.write(r'##reference=file:///data/anopheles/ag1000g/data/genome/AgamP3'
 reqd = ('#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT')
 
 # rememeber to act on all 1st level keys!
+# does not support multiple chromosomes currently! Actually should probably add
+# to filter script...
+assert len(h5_handle.keys()) <= 1
 for k in h5_handle.keys():
 
     genotypes = anhima.gt.as_012(h5_handle[k]['calldata']['genotype'][:])
     samples = tuple(h5_handle[k]['samples'][:].tolist())
+
+    missing_genotypes = (genotypes == -1)
+    count_missing = missing_genotypes.sum(axis=0)
+    assert count_missing.size == len(samples)
+
+    missing_rate = count_missing/float(genotypes.shape[0])
+    ok_samples = missing_rate < args.missingcutoff
+
+    if np.any(~ok_samples):
+        print "The following samples are excluded as they have  a " \
+              "missingness rate of >=" + str(args.missingcutoff) + ": " + \
+              " ".join(np.compress(~ok_samples, samples).tolist())
+        samples = tuple(np.compress(ok_samples, samples).tolist())
+        genotypes = genotypes[:, ok_samples]
+
     f.write("\t".join(reqd + samples) + "\n")
 
     positions = h5_handle[k]['variants']['POS'][:]
