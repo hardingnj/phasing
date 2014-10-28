@@ -82,11 +82,11 @@ for k in h5_handle.keys():
         if not args.keepmissing and np.all(gt == -1):
             continue
 
-        try:
-            # alt may be an np array, with several entries.
-            if alt is isinstance(alt, np.ndarray):
-                alt = ",".join(a for a in alt if a != '')
+        # alt may be an np array, with several entries.
+        if isinstance(alt, np.ndarray):
+            alt = ",".join(x for x in alt if x != '')
 
+        try:
             line = "\t".join([k, str(pos), '.', ref, alt, '0', '.', '.',
                               'GT'] + [lookup[s] for s in gt])
             f.write(line + "\n")
