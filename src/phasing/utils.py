@@ -190,25 +190,24 @@ def create_sh_script(filename, commands=None, outfile=None):
     script.close()
 
 
-def calc_windows(k, end, contig, start=1):
+def calc_regions(size, nbins=20, overlap=0):
+
     """
-    # Define function that detemines the regions, in chunks to split the jobs
-    # Function returns a list of strings
-    :param k: desired size
-    :param end: final base (inclusive)
-    :param contig: the contig
-    :param start: start of the window, usually 0/1
+    :param size: size of total region
+    :param nbins: number of regions
+    :param overlap: stagger
     :return:
     """
-
+    if overlap is None:
+        overlap = size/(nbins*20)
+    approx_size = 1 + size/nbins + overlap - (overlap/nbins)
+    print approx_size, overlap
     regions = []
-    i = start
-    while i < end:
-        regions.append(contig + '{S1}'
-                       + str(i) + "{S2}"
-                       + str(min(end, i + k - 1)))
-        i += k
 
+    for i in range(nbins):
+        start = i*(approx_size-overlap) + 1
+        stop = start + approx_size
+        regions.append((start, stop))
     return regions
 
 
