@@ -13,6 +13,7 @@ import yaml
 import algorithms
 from itertools import izip
 import pandas as pd
+import hashlib
 
 
 def get_relevant_haplotpes(pat_idx, mat_idx, pro_idx, hap_gt, hap_pos):
@@ -427,3 +428,14 @@ def read_pedigree_table(path, pedigree_id_col='cross', status_id_col='role',
         pedigree[row[pedigree_id_col]][row[status_id_col]].append(sid)
 
     return pedigree, ped_tbl
+
+
+def md5_for_file(f, block_size=2**20):
+    fh = open(f, 'rb')
+    md5 = hashlib.md5()
+    while True:
+        data = fh.read(block_size)
+        if not data:
+            break
+        md5.update(data)
+    return str(md5.digest())

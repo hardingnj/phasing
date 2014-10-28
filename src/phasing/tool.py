@@ -7,7 +7,7 @@ import utils
 import shutil
 import sh
 import uuid
-import hashlib
+import phasing
 
 
 class Tool():
@@ -42,17 +42,6 @@ class Tool():
 
     def __str__(self):
         return yaml.dump(self.tool_dict)
-
-    @staticmethod
-    def md5_for_file(f, block_size=2**20):
-        fh = open(f, 'rb')
-        md5 = hashlib.md5()
-        while True:
-            data = fh.read(block_size)
-            if not data:
-                break
-            md5.update(data)
-        return str(md5.digest())
 
     # Method to create command and put all data in a yaml dict
     def parse_command(self, parameters):
@@ -103,7 +92,6 @@ class Tool():
 
         # kicks off qsub job with parameters
         os.makedirs(self.outdir)  # No check as should not exist already
-        self.dump_parameters()
 
         utils.create_sh_script(filename=self.script_f,
                                commands=['cd ' + self.outdir,
@@ -112,6 +100,9 @@ class Tool():
 
         # get checksum
         if self.checksum_func is not None:
-            self.tool_dict['checksum'] = Tool.md5_for_file(self.checksum_func())
+            self.tool_dict['checksum'] = phasing.utils.md5_for_file(
+                self.checksum_func())
+
+        self.dump_parameters()
 
         print sh.qsub(qsub_parameters + list(args) + [self.script_f])

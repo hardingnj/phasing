@@ -62,7 +62,16 @@ for k in h5_handle.keys():
         if not args.keepmissing and np.all(gt == -1):
             continue
 
-        line = "\t".join([k, str(pos), '.', ref, alt, '0', '.', '.',
-                          'GT'] + [lookup[int(s)] for s in gt])
-        f.write(line + "\n")
+        try:
+            line = "\t".join([k, str(pos), '.', ref, alt, '0', '.', '.',
+                              'GT'] + [lookup[int(s)] for s in gt])
+            f.write(line + "\n")
+        except TypeError:
+            print pos
+            print ref
+            print alt
+            print gt
+            exit(1)
+
+
 f.close()
