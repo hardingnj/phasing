@@ -7,7 +7,6 @@ import utils
 import shutil
 import sh
 import uuid
-import phasing
 
 
 class Tool():
@@ -100,8 +99,8 @@ class Tool():
 
         # get checksum
         if self.checksum_func is not None:
-            self.tool_dict['checksum'] = phasing.utils.md5_for_file(
-                self.checksum_func())
+            self.tool_dict['checksum'] = utils.md5_for_file(
+                f=self.checksum_func())
 
         self.dump_parameters()
 
