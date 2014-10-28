@@ -83,15 +83,19 @@ for k in h5_handle.keys():
             continue
 
         try:
+            # alt may be an np array, with several entries.
+            if alt is isinstance(alt, np.ndarray):
+                alt = ",".join(a for a in alt if a != '')
+
             line = "\t".join([k, str(pos), '.', ref, alt, '0', '.', '.',
-                              'GT'] + [lookup[int(s)] for s in gt])
+                              'GT'] + [lookup[s] for s in gt])
             f.write(line + "\n")
+
         except TypeError:
             print pos
             print ref
             print alt
             print gt
             exit(1)
-
 
 f.close()
