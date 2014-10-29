@@ -198,7 +198,6 @@ if not os.path.isfile(truth_root_vcf + '.ME_filt.vcf.gz.ok'):
 
 # PHASE 3
 sh.qsub('-l', 'h_vmem=2G', '-hold_jid', 'me_filter_truth',
-            '-N', 'truth_split', '-j', 'y', '-S', '/bin/bash',
-            '-o', truth_dirs['log'], '-t', '1-'+str(config['nbins']),
-            os.path.join(eval_dirs['script'],
-                         r"$SGE_TASK_ID." + split_vcf_name))
+        '-N', 'truth_split', '-j', 'y', '-S', '/bin/bash',
+        '-o', truth_dirs['log'], '-t', '1-'+str(config['nbins']),
+        os.path.join(eval_dirs['script'], r"\$SGE_TASK_ID." + split_vcf_name))
