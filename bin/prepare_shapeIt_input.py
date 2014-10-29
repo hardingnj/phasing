@@ -17,7 +17,7 @@ config = yaml.load(open(args.config, 'r'))
 
 
 def split_vcfs_region(vcf_loc, vcf_stem, contig, start_pos, stop_pos, outdir):
-    split_command = "vcftools --gzvcf {FILE} --out {OUT} --chrom {CHR} " \
+    split_command = "vcftools --gzvcf {FILE} --out {OUT} --chr {CHR} " \
                     "--from-bp {START} --to-bp {STOP} --recode"
     bgzip_command = 'bgzip {OUT}.vcf'
     tabix_command = 'tabix -fp vcf {OUT}.vcf.gz'
