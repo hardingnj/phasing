@@ -127,7 +127,7 @@ ph.utils.create_sh_script(
 
 # Evaluation
 ph.utils.create_sh_script(
-    os.path.join(truth_dirs['script'], make_vcf_name),
+    os.path.join(eval_dirs['script'], make_vcf_name),
     create_vcf_cmd(raw=config['eval_h5'], gq=config['gq_threshold'],
                    out=eval_root_vcf))
 
