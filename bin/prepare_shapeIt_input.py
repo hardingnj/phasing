@@ -201,4 +201,4 @@ sh.qsub('-l', 'h_vmem=2G', '-hold_jid', 'me_filter_truth',
         '-N', 'truth_split', '-j', 'y', '-S', '/bin/bash', '-b', 'y',
         '-o', truth_dirs['log'], '-t', '1-'+str(config['nbins']),
         os.path.join(truth_dirs['script'],
-                     r"\$SGE_TASK_ID." + split_vcf_name))
+                     "\\$SGE_TASK_ID." + split_vcf_name))
