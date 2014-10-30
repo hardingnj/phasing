@@ -30,7 +30,7 @@ import numpy as np
 # would like shapeIt run to be aware that duoHMM has been run on it, so can
 # parse results
 # duo hmm needs to be aware of the parameters of shape it
-
+# add duo hmm as a flag to shape It.
 
 class DuoHMM(tool.Tool):
 
