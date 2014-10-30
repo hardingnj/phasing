@@ -202,3 +202,9 @@ sh.qsub('-l', 'h_vmem=2G', '-hold_jid', 'me_filter_truth',
         '-o', truth_dirs['log'], '-t', '1-'+str(config['nbins']),
         os.path.join(truth_dirs['script'],
                      r'${SGE_TASK_ID}.' + split_vcf_name))
+
+# NEED TO ADD PARENT SAMPLES TO EVAL SET
+
+# THEN PHASE 3
+
+# THEN PHASE 4
