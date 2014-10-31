@@ -195,7 +195,7 @@ class ShapeIt():
                                    self.run_id + '.sample.gz')
 
             cmd_shape_it = " ".join([self.executable] + parameters +
-                                    ['--output-from', start, '--output-to',
+                                    ['--input-from', start, '--input-to',
                                      stop, '--output-max', haps, samples])
 
             script_name = os.path.join(self.dirs['script'], str(i) +
