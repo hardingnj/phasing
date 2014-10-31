@@ -191,7 +191,7 @@ class ShapeIt():
             haps = os.path.join(self.outdir, region_dir, str(i) + '_' +
                                 self.run_id + '.haps.gz')
             hap_files.append(haps)
-            samples = os.path.join(self.outdir, region_dir, str(i) +
+            samples = os.path.join(self.outdir, region_dir, str(i) + '_' +
                                    self.run_id + '.sample.gz')
 
             cmd_shape_it = " ".join([self.executable] + parameters +
