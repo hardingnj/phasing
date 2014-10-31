@@ -169,8 +169,8 @@ class ShapeIt():
                          'basedir': outdir, 'haps': self.haplotypes_f,
                          'samples': self.phased_f}
 
-    def setup_region_jobs(self, parameters, duohmm=False, regions=None,
-                          pirs=None, vcf_file=None):
+    def setup_region_jobs(self, parameters, regions=None, vcf_file=None,
+                          pirs=None, duohmm=False):
 
         # basically, set up a shapeIT job for each region. This may be several
         # lines long.
@@ -178,6 +178,7 @@ class ShapeIt():
         os.mkdir(region_dir)
 
         parameters = [str(x) for x in parameters] + ['--input-vcf', vcf_file]
+        self.checksum_file = vcf_file
 
         hap_files = list()
         for i, region in enumerate(regions):
@@ -188,7 +189,7 @@ class ShapeIt():
             samples = os.path.join(self.outdir, region_dir, str(i) +
                                    self.run_id + '.sample.gz')
 
-            cmd_shape_it = " ".join([self.executable] +
+            cmd_shape_it = " ".join([self.executable] + parameters +
                                     ['--output-from', start, '--output-to',
                                      stop, '--output-max', haps, samples])
 
