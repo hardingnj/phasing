@@ -214,7 +214,7 @@ class ShapeIt():
 
         self.ligate_script = os.path.join(self.dirs['script'], 'ligatehaps.sh')
         cmd_ligate = [self.ligate_bin, '--vcf', tmp.name, '--chunks',
-                      " ".join(hap_files), '--ouput', self.haplotypes_f,
+                      " ".join(hap_files), '--output', self.haplotypes_f,
                       self.phased_f]
 
         utils.create_sh_script(self.ligate_script,
