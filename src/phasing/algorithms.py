@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import sh
 import uuid
+import tempfile
 import utils
 import subprocess
 import yaml
@@ -141,9 +142,13 @@ class ShapeIt():
             print(out)
             raise Exception('Version not parsed.')
 
-    def __init__(self, outdir, executable='shapeit', version=None):
+    def __init__(self, outdir, executable='shapeit',
+                 ligate_exec='/home/njh/exec/ligateHAPLOTYPES/bin'
+                             '/ligateHAPLOTYPES',
+                 version=None):
 
         self.executable = executable
+        self.ligate_bin = ligate_exec
         if version is None:
             version = self._get_version(self.executable)
         self.version = version
@@ -183,8 +188,8 @@ class ShapeIt():
         hap_files = list()
         for i, region in enumerate(regions):
             start, stop = [str(x) for x in region]
-            haps = os.path.join(self.outdir, region_dir, str(i) + self.run_id +
-                                '.haps.gz')
+            haps = os.path.join(self.outdir, region_dir, str(i) + '_' +
+                                self.run_id + '.haps.gz')
             hap_files.append(haps)
             samples = os.path.join(self.outdir, region_dir, str(i) +
                                    self.run_id + '.sample.gz')
@@ -204,13 +209,19 @@ class ShapeIt():
             self.si_job_list.append(script_name)
 
         # set up ligateHaplotypes
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        gunzip = "gunzip -c {0} > {1}"
+
         self.ligate_script = os.path.join(self.dirs['script'], 'ligatehaps.sh')
-        cmd_ligate = ['/home/njh/exec/ligateHAPLOTYPES/bin/ligateHAPLOTYPES',
-                      '--vcf', vcf_file, '--chunks', " ".join(hap_files),
-                      '--ouput', self.haplotypes_f, self.phased_f]
+        cmd_ligate = [self.ligate_bin, '--vcf', tmp.name, '--chunks',
+                      " ".join(hap_files), '--ouput', self.haplotypes_f,
+                      self.phased_f]
 
         utils.create_sh_script(self.ligate_script,
-                               ['cd ' + self.outdir, " ".join(cmd_ligate)],
+                               [gunzip.format(vcf_file, tmp.name),
+                                'cd ' + self.outdir,
+                                " ".join(cmd_ligate),
+                                'rm ' + tmp.name],
                                self.haplotypes_f)
         self.settings['params'] = parse_command(parameters)
 
