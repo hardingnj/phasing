@@ -20,18 +20,20 @@ class TestShapeIt(unittest.TestCase):
         tmp = tempfile.mkdtemp()
         params = ['-B', self.tempfile, '--duohmm']
 
-        test_run = phasing.algorithms.ShapeIt(params, tmp)
-
-        self.assertIsInstance(test_run.tool_dict, dict)
-        self.assertEquals(test_run.tool_dict['command']['-B'], self.tempfile)
-        self.assertTrue(test_run.tool_dict['command']['--duohmm'])
-
-        self.assertEquals(test_run.tool_dict['command']['--output-max'],
-                          test_run.haplotypes_f + ';' + test_run.phased_f)
+        test_run = phasing.algorithms.ShapeIt(outdir=tmp)
+        test_run.setup_region_jobs(params, duohmm=False,
+                                   regions=[(1, 10), (11, 20)], pirs=None,
+                                   vcf_file=self.tempfile)
+        self.assertIsInstance(test_run.settings, dict)
+        self.assertEquals(test_run.settings['params']['-B'], self.tempfile)
+        self.assertTrue(test_run.settings['params']['--duohmm'])
 
     def test_numbers_ok(self):
-        tmp = tempfile.mkdtemp()
         params = ['--thread', 0.05, '--setting', 1, '-B', self.tempfile]
 
-        t = phasing.algorithms.ShapeIt(params, tmp)
-        self.assertEquals(t.tool_dict['command']['--thread'], '0.05')
+        t = phasing.algorithms.ShapeIt(outdir='/tmp')
+
+        t.setup_region_jobs(params, duohmm=False,
+                            regions=[(1, 10), (11, 20)], pirs=None,
+                            vcf_file=self.tempfile)
+        self.assertEquals(t.settings['params']['--thread'], '0.05')

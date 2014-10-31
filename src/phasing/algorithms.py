@@ -5,6 +5,11 @@ import os
 import tool
 import pandas as pd
 import numpy as np
+import sh
+import uuid
+import utils
+import subprocess
+import yaml
 # collection of methods for submission of shapeit jobs with various defaults
 
 # behaviour:
@@ -31,6 +36,29 @@ import numpy as np
 # parse results
 # duo hmm needs to be aware of the parameters of shape it
 # add duo hmm as a flag to shape It.
+def parse_command(parameters):
+
+    cl = re.compile('^-')
+    last_was_key = False
+    key = None
+    parameters = [str(x) for x in parameters]
+
+    command_dict = {}
+    for value in parameters:
+        value = str(value)
+        if cl.match(value):
+            key = value
+            command_dict[key] = True
+            last_was_key = True
+        else:
+            if last_was_key:
+                command_dict[key] = value
+                last_was_key = False
+            else:
+                command_dict[key] = command_dict[key] + ';' + value
+
+    return command_dict
+
 
 class DuoHMM(tool.Tool):
 
@@ -95,72 +123,114 @@ class DuoHMM(tool.Tool):
                              '-R', self.recombination_map]
 
 
-class ShapeIt(tool.Tool):
+class ShapeIt():
 
     @staticmethod
     def _get_version(executable):
 
-        shapeit_v = os.popen(executable + ' --version').read()
+        p = subprocess.Popen(args=[executable, '--version'],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        out, _ = p.communicate()
 
         p = re.compile("Version : (.+)\n")  # parentheses for capture groups
-        m = p.search(str(shapeit_v))
+        m = p.search(out)
         if m:
             return m.group(1)
         else:
-            print(shapeit_v)
+            print(out)
             raise Exception('Version not parsed.')
 
-    def _manipulate_parameters(self, parameters):
-        # function edits parameters before they are passed to Tool
-        # handy for auto determining outputs etc
-        # automatically work out output filenames.
-        self.haplotypes_f = os.path.join(self.outdir, self.run_id + '.haps.gz')
-        self.phased_f = os.path.join(self.outdir, self.run_id + '.sample')
-        assert '--output-max' not in parameters
+    def __init__(self, outdir, executable='shapeit', version=None):
 
-        # now we can call the parse method to init command string and dict
-        return parameters + ['--output-max', self.haplotypes_f, self.phased_f]
-
-    def _checksum(self):
-        # can accept several inputs so
-        d = self.tool_dict['command']
-        if '-B' in d:
-            return d['-B'] + '.bed'
-        elif '--input-vcf' in d:
-            return d['--input-vcf']
-        else:
-            return None
-
-    def __init__(self, parameters, outdir, executable='shapeit',
-                 version=None, run_id=None):
-
+        self.executable = executable
         if version is None:
-            version = self._get_version(executable)
+            version = self._get_version(self.executable)
+        self.version = version
+        self.name = 'ShapeIt'
+        self.checksum_file = None
 
-        tool.Tool.__init__(self,
-                           parameters=parameters,
-                           executable=executable,
-                           outdir=outdir,
-                           name=ShapeIt.__name__,
-                           version=version,
-                           run_id=run_id,
-                           manipulate_parameters=self._manipulate_parameters,
-                           checksum=self._checksum)
+        self.run_id = self.name + '_' + str(uuid.uuid4().get_hex().upper()[0:8])
 
-        self.duohmm = None
+        self.outdir = os.path.join(outdir, self.name, self.version, self.run_id)
+        self.basedir = outdir
+        self.si_job_list = list()
+        self.ligate_script = None
+        self.dirs = {d: os.path.join(self.outdir, d) for d in ('log', 'script')}
+        [sh.mkdir(d, '-p') for d in self.dirs.values() if not os.path.isdir(d)]
 
-    def parse_output(self, ignore_duohmm=False):
-        if self.duohmm is None:
-            Exception(IOError)
-        elif ignore_duohmm or self.duohmm is None:
-            return ShapeIt.process_shapeit_output(self.haplotypes_f,
-                                                  self.phased_f)
-        else:
-            return ShapeIt.process_shapeit_output(self.duohmm.haplotypes_f,
-                                                  self.duohmm.phased_f)
+        self.haplotypes_f = os.path.join(self.outdir, self.run_id +
+                                         '_final.haps.gz')
+        self.phased_f = os.path.join(self.outdir, self.run_id +
+                                     '_final.samples.gz')
+        self.param_f = os.path.join(self.outdir, self.run_id + '.yaml')
+        self.settings = {'run_id': self.run_id, 'version': self.version,
+                         'executable': self.executable, 'outdir': self.outdir,
+                         'basedir': outdir, 'haps': self.haplotypes_f,
+                         'samples': self.phased_f}
 
-    def attach_duohmm(self, duohmm=None):
-        self.duohmm = duohmm
+    def setup_region_jobs(self, parameters, duohmm=False, regions=None,
+                          pirs=None, vcf_file=None):
+
+        # basically, set up a shapeIT job for each region. This may be several
+        # lines long.
+        region_dir = os.path.join(self.outdir, 'region_outputs')
+        os.mkdir(region_dir)
+
+        parameters = [str(x) for x in parameters] + ['--input-vcf', vcf_file]
+
+        hap_files = list()
+        for i, region in enumerate(regions):
+            start, stop = [str(x) for x in region]
+            haps = os.path.join(self.outdir, region_dir, str(i) + self.run_id +
+                                '.haps.gz')
+            hap_files.append(haps)
+            samples = os.path.join(self.outdir, region_dir, str(i) +
+                                   self.run_id + '.sample.gz')
+
+            cmd_shape_it = " ".join([self.executable] +
+                                    ['--output-from', start, '--output-to',
+                                     stop, '--output-max', haps, samples])
+
+            script_name = os.path.join(self.dirs['script'], str(i) +
+                                       '_shapeIt.sh')
+            utils.create_sh_script(
+                filename=script_name,
+                commands=['cd ' + region_dir, cmd_shape_it],
+                outfile=haps)
+
+            # name, script, mem, dependency
+            self.si_job_list.append(script_name)
+
+        # set up ligateHaplotypes
+        self.ligate_script = os.path.join(self.dirs['script'], 'ligatehaps.sh')
+        cmd_ligate = ['/home/njh/exec/ligateHAPLOTYPES/bin/ligateHAPLOTYPES',
+                      '--vcf', vcf_file, '--chunks', " ".join(hap_files),
+                      '--ouput', self.haplotypes_f, self.phased_f]
+
+        utils.create_sh_script(self.ligate_script,
+                               ['cd ' + self.outdir, " ".join(cmd_ligate)],
+                               self.haplotypes_f)
+        self.settings['params'] = parse_command(parameters)
+
+    def parse_output(self):
+        return ShapeIt.process_shapeit_output(self.haplotypes_f, self.phased_f)
+
+    def run_region(self, si_args, li_args):
+
+        qsub_parameters = ['-S', '/bin/bash',
+                           '-j', 'y',
+                           '-o', self.dirs['log']]
+        # get checksum
+        self.settings['checksum'] = utils.md5_for_file(self.checksum_file)
+        yaml.dump(self.settings,
+                  stream=open(self.param_f, 'w'))
+
+        for job in self.si_job_list:
+            print sh.qsub('-N', self.run_id, qsub_parameters, si_args, job)
+
+        print sh.qsub('-hold_jid', self.run_id, '-N', 'ligate' + self.run_id,
+                      qsub_parameters + li_args, self.ligate_script)
 
     @staticmethod
     def process_shapeit_output(haplotypes, samples):
