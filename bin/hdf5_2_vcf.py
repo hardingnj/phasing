@@ -8,6 +8,7 @@ import h5py
 from itertools import izip
 import anhima
 import numpy as np
+import phasing
 
 parser = argparse.ArgumentParser(
     description='Tool to produce a vcf file from an hdf5 file')
@@ -19,6 +20,9 @@ parser.add_argument('--keepmissing', '-m', action='store_true', default=False)
 parser.add_argument('--cutoff', '-c', action='store', default=0.1,
                     dest='missingcutoff', type=float,
                     help='Maximum missing GTs tolerated in a sample')
+parser.add_argument('--pedigree', '-p', action='store', dest='pedigree',
+                    type=basestring, help='path to load pedigree file')
+
 # to do: add option to only filter individual crosses.
 args = parser.parse_args()
 
@@ -68,6 +72,11 @@ for k in h5_handle.keys():
               " ".join(np.compress(~ok_samples, samples).tolist())
         samples = tuple(np.compress(ok_samples, samples).tolist())
         genotypes = genotypes[:, ok_samples]
+
+    if args.pedigree is not None:
+        phasing.utils.create_samples_file(args.pedigree,
+                                          args.output + '.sample',
+                                          ok_samples)
 
     f.write("\t".join(reqd + samples) + "\n")
 

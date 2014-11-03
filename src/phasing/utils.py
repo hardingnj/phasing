@@ -438,3 +438,38 @@ def md5_for_file(f, block_size=2**20):
             break
         md5.update(data)
     return md5.hexdigest()
+
+
+def create_samples_file(path=None, output=None, samples=None):
+    pedigree, ped_tbl = read_pedigree_table(path)
+    fh = open(output, mode='w')
+    header_1 = " ".join(['ID_1', 'ID_2', 'missing', 'father',
+                         'mother', 'sex', 'plink_pheno'])
+    header_2 = " ".join(['0', '0', '0', 'D', 'D', 'D', 'B'])
+
+    if samples is None:
+        samples = ped_tbl.index.tolist()
+
+    fh.write(header_1 + "\n")
+    fh.write(header_2 + "\n")
+
+    ped_counter = {p: 0 for p in set(ped_tbl.cross.tolist())}
+
+    for s in samples:
+
+        maternal_id = '0'
+        paternal_id = '0'
+
+        match = ped_tbl.loc[s]
+        cross = match['cross']
+        ped_counter[cross] += 1
+        family = cross + '_' + str(ped_counter[cross])
+
+        parents = ped_tbl[(ped_tbl.cross == cross) & (ped_tbl.role ==
+                                                      'parent')].index
+        if match.name not in parents:
+            paternal_id = parents[0]
+            maternal_id = parents[1]
+
+        line = " ".join([family, s, '0', paternal_id, maternal_id, '0', '-9'])
+        fh.write(line + "\n")
