@@ -16,12 +16,12 @@ parser = argparse.ArgumentParser(
 parser.add_argument('input', help='input hdf5 file')
 parser.add_argument('output', help='output file stem')
 
-parser.add_argument('--keepmissing', '-m', action='store_true', default=False)
-parser.add_argument('--cutoff', '-c', action='store', default=0.1,
+parser.add_argument('--keepmissing', '-M', action='store_true', default=False)
+parser.add_argument('--cutoff', '-C', action='store', default=0.1,
                     dest='missingcutoff', type=float,
                     help='Maximum missing GTs tolerated in a sample')
-parser.add_argument('--pedigree', '-p', action='store', dest='pedigree',
-                    type=basestring, help='path to load pedigree file')
+parser.add_argument('--pedigree', '-P', action='store', dest='pedigree',
+                    help='path to load pedigree file')
 
 # to do: add option to only filter individual crosses.
 args = parser.parse_args()
@@ -76,7 +76,7 @@ for k in h5_handle.keys():
     if args.pedigree is not None:
         phasing.utils.create_samples_file(args.pedigree,
                                           args.output + '.sample',
-                                          ok_samples)
+                                          samples)
 
     f.write("\t".join(reqd + samples) + "\n")
 
