@@ -453,23 +453,28 @@ def create_samples_file(path=None, output=None, samples=None):
     fh.write(header_1 + "\n")
     fh.write(header_2 + "\n")
 
-    ped_counter = {p: 0 for p in set(ped_tbl.cross.tolist())}
+    ped_counter = {p: 0 for p in set(ped_tbl.cross.tolist() + ['none'])}
 
     for s in samples:
 
         maternal_id = '0'
         paternal_id = '0'
+        cross = 'none'
 
-        match = ped_tbl.loc[s]
-        cross = match['cross']
+        try:
+            match = ped_tbl.loc[s]
+            cross = match['cross']
+            parents = ped_tbl[(ped_tbl.cross == cross) & (ped_tbl.role ==
+                                                          'parent')].index
+            if match.name not in parents:
+                paternal_id = parents[0]
+                maternal_id = parents[1]
+
+        except KeyError:
+            pass
+
         ped_counter[cross] += 1
         family = cross + '_' + str(ped_counter[cross])
-
-        parents = ped_tbl[(ped_tbl.cross == cross) & (ped_tbl.role ==
-                                                      'parent')].index
-        if match.name not in parents:
-            paternal_id = parents[0]
-            maternal_id = parents[1]
 
         line = " ".join([family, s, '0', paternal_id, maternal_id, '0', '-9'])
         fh.write(line + "\n")
