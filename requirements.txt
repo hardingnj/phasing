@@ -8,3 +8,4 @@ yaml
 hashlib
 h5py
 pandas
+tables
