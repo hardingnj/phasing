@@ -17,7 +17,7 @@ parser.add_argument('input', help='input hdf5 file')
 parser.add_argument('output', help='output file stem')
 
 parser.add_argument('--keepmissing', '-M', action='store_true', default=False)
-parser.add_argument('--cutoff', '-C', action='store', default=0.1,
+parser.add_argument('--cutoff', '-C', action='store', default=0.2,
                     dest='missingcutoff', type=float,
                     help='Maximum missing GTs tolerated in a sample')
 parser.add_argument('--pedigree', '-P', action='store', dest='pedigree',
@@ -67,11 +67,16 @@ for k in h5_handle.keys():
     ok_samples = missing_rate < args.missingcutoff
 
     if np.any(~ok_samples):
-        print "The following samples are excluded as they have  a " \
-              "missingness rate of >=" + str(args.missingcutoff) + ": " + \
-              " ".join(np.compress(~ok_samples, samples).tolist())
+        msg = "The following {0} samples are excluded as they have a " \
+              "missingness rate of >= {1}:".format(str(np.sum(~ok_samples)),
+                                                   str(args.missingcutoff))
+        print(msg, " ".join(np.compress(~ok_samples, samples).tolist()))
+
         samples = tuple(np.compress(ok_samples, samples).tolist())
         genotypes = genotypes[:, ok_samples]
+    else:
+        print "All samples meet the missingness threshold ({0})" \
+            .format(str(args.missingcutoff))
 
     if args.pedigree is not None:
         phasing.utils.create_samples_file(args.pedigree,
