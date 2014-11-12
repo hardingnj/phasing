@@ -69,7 +69,8 @@ def add_parents_to_wild_cmd(wild_vcf_stem, cross_vcf_stem,
     # then combine them
     combine_samples = "vcfcombine {VCF_A} {VCF_B} > {OUT}"
 
-    cmd = [extract_samples.format(VCF=cross_vcf_stem + '.vcf',
+    cmd = ["export PATH=$PATH:/home/njh/exec/bin/",
+           extract_samples.format(VCF=cross_vcf_stem + '.vcf',
                                   SAMPLES=" ".join(parents),
                                   OUT=tmpfile.name),
            combine_samples.format(VCF_A=wild_vcf_stem + '.vcf',
