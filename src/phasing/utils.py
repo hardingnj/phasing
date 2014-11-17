@@ -314,13 +314,20 @@ def calculate_switch_error(inheritance):
     return np.array(switch_sums).mean(axis=0)
 
 
-def plot_ped_haplotype_inheritance(run, pedigree,
+def plot_ped_haplotype_inheritance(parent_genotypes,
+                                   progeny_genotypes,
+                                   positions,
+                                   filename=None,
+                                   downsample=10000,
+                                   filter='eitherhet',
+                                   title='Haplotype inheritance',
                                    inheritance_colors=('red', 'blue',
                                                        'green', 'orange',
                                                        'black', 'yellow',
                                                        'white'),
                                    spacer=0.02,
-                                   panel_height_ratios=(3.0, 3.0, 1.0, 1.0)):
+                                   panel_height_ratios=(3.0, 3.0, 1.0, 1.0),
+                                   progeny_labels=None):
     """
     Creates a plot for each pedigree in the pedigree dict
     :param run: an instance of Tool
@@ -331,83 +338,79 @@ def plot_ped_haplotype_inheritance(run, pedigree,
     :return:
     """
 
-    genotypes, samples, dic = run.parse_output()
     panel_heights = np.array(panel_height_ratios)/np.sum(panel_height_ratios)\
         - spacer
 
-    out_dir = os.path.join(run.outdir, 'plots')
-    if not os.path.isdir(out_dir):
-        os.mkdir(out_dir)
+    selection = np.ones(parent_genotypes.shape[0], dtype='bool')
+    if filter == 'eitherhet':
+        selection = anhima.gt.is_het(parent_genotypes).any(axis=1)
+    elif filter == 'bothhet':
+        selection = anhima.gt.is_het(parent_genotypes).all(axis=1)
 
-    for cross in pedigree.keys():
-        # skip if fn exists
-        filename = os.path.join(out_dir, cross + '.png')
-        if os.path.isfile(filename):
-            continue
+    # downsample
+    if downsample is not None:
+        where = np.where(selection)[0]
+        idx = np.random.choice(where, downsample, replace=False)
+        toplot = np.zeros(selection.shape, dtype='bool')
+        toplot[idx] = True
+        print 'Downsampling from {0} to {1} for plotting'.format(str(
+            selection.sum()), str(downsample))
+    else:
+        toplot = selection
 
-        parents = np.array([samples.index(p) for p in
-                            pedigree[cross]['parent']])
-        progeny = np.array([samples.index(p) for p in
-                            pedigree[cross]['progeny']])
+    father = np.compress(toplot, parent_genotypes[:, 0], axis=0)
+    mother = np.compress(toplot, parent_genotypes[:, 1], axis=0)
 
-        is_het = anhima.gt.is_het(genotypes[:, parents[0]]) | \
-            anhima.gt.is_het(genotypes[:, parents[1]])
+    # NB: critical assumption of genotypes here
+    paternal_haplotypes = np.compress(toplot, progeny_genotypes,
+                                      axis=0)[:, :, 0]
+    maternal_haplotypes = np.compress(toplot, progeny_genotypes,
+                                      axis=0)[:, :, 1]
 
-        mother = np.compress(is_het, genotypes[:, parents[0]], axis=0)
-        father = np.compress(is_het, genotypes[:, parents[1]], axis=0)
+    positions = np.compress(is_het, positions, axis=0)
 
-        # NB: critical assumption of genotypes here
-        maternal_haplotypes = np.compress(is_het,
-                                          genotypes[:, progeny, 0],
-                                          axis=0)
-        paternal_haplotypes = np.compress(is_het,
-                                          genotypes[:, progeny, 1],
-                                          axis=0)
+    # Again assumption of correct location of parents in dict
+    maternal_inheritance = anhima.ped.diploid_inheritance(
+        mother, maternal_haplotypes)
+    paternal_inheritance = anhima.ped.diploid_inheritance(
+        father, paternal_haplotypes)
 
-        positions = np.compress(is_het, dic['pos'], axis=0)
+    axes = [(0, n*spacer + panel_heights[:n].sum(),
+             1, panel_heights[n]) for n in range(panel_heights.size)]
 
-        # Again assumption of correct location of parents in dict
-        maternal_inheritance = anhima.ped.diploid_inheritance(
-            mother, maternal_haplotypes)
-        paternal_inheritance = anhima.ped.diploid_inheritance(
-            father, paternal_haplotypes)
+    fig, ax = plt.subplots(figsize=(12, 8))
+    progeny_labels.reverse()
 
-        axes = [(0, n*spacer + panel_heights[:n].sum(),
-                 1, panel_heights[n]) for n in range(panel_heights.size)]
+    plt.title(title)   # subplot 211 title
 
-        fig, ax = plt.subplots(figsize=(12, 8))
+    # (left, bottom, width, height)
+    ax = fig.add_axes(axes.pop())
+    anhima.loc.plot_windowed_variant_density(positions,
+                                             window_size=50000,
+                                             ax=ax)
 
-        progeny_labels = [p for p in pedigree[cross]['progeny'] if p in samples]
-        progeny_labels.reverse()
+    ax = fig.add_axes(axes.pop())
+    anhima.loc.plot_variant_locator(positions,
+                                    step=1000,
+                                    ax=ax,
+                                    flip=True)
 
-        # (left, bottom, width, height)
-        ax = fig.add_axes(axes.pop())
-        anhima.loc.plot_windowed_variant_density(positions,
-                                                 window_size=50000,
-                                                 ax=ax)
+    ax = fig.add_axes(axes.pop())
+    anhima.gt.plot_discrete_calldata(paternal_inheritance,
+                                     colors=inheritance_colors,
+                                     labels=progeny_labels,
+                                     states=range(1, 8),
+                                     ax=ax)
 
-        ax = fig.add_axes(axes.pop())
-        anhima.loc.plot_variant_locator(positions,
-                                        step=1000,
-                                        ax=ax,
-                                        flip=True)
-
-        ax = fig.add_axes(axes.pop())
-        anhima.gt.plot_discrete_calldata(paternal_inheritance,
-                                         colors=inheritance_colors,
-                                         labels=progeny_labels,
-                                         states=range(1, 8),
-                                         ax=ax)
-
-        ax = fig.add_axes(axes.pop())
-        anhima.gt.plot_discrete_calldata(maternal_inheritance,
-                                         colors=inheritance_colors,
-                                         labels=progeny_labels,
-                                         states=range(1, 8),
-                                         ax=ax)
-
+    ax = fig.add_axes(axes.pop())
+    anhima.gt.plot_discrete_calldata(maternal_inheritance,
+                                     colors=inheritance_colors,
+                                     labels=progeny_labels,
+                                     states=range(1, 8),
+                                     ax=ax)
+    if filename is not None:
         plt.savefig(filename, bbox_inches='tight')
-        plt.close()
+    return ax
 
 
 def read_pedigree_table(path, pedigree_id_col='cross', status_id_col='role',
