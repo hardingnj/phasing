@@ -129,7 +129,7 @@ make_vcf_name = str(config['gq_threshold']) + '_make_vcf.sh'
 me_filter_name = str(config['gq_threshold']) + '_filter_me.sh'
 split_vcf_name = str(config['gq_threshold']) + '_split_by_region.sh'
 compress_name = str(config['gq_threshold']) + '_compress.sh'
-combine_name = str(config['gq_threshold']) + 'combine_set.sh'
+combine_name = str(config['gq_threshold']) + '_combine_set.sh'
 
 ### 1 : CREATE VCF files (dependencies none)
 ### 2 : FILTER BY ME SITES  (1).
