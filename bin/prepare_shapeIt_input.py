@@ -106,13 +106,17 @@ def split_vcfs_region(vcf_loc, vcf_stem, contig, start_pos, stop_pos, outdir):
 def write_bamlist(path, dir_format, samples, contig):
 
     bams = []
-    f = open(path, 'a')
+    fh = open(path, 'a')
     for s in samples:
         bam = dir_format.format(SAMPLE=s)
-        assert os.path.isfile(bam)
+        try:
+            assert os.path.isfile(bam)
+        except AssertionError:
+            print bam, 'not found.'
+            exit(1)
         bams.append(bam)
-        f.write("\t".join([re.sub('_', '-', s), bam, contig]) + '\n')
-    f.close()
+        fh.write("\t".join([re.sub('_', '-', s), bam, contig]) + '\n')
+    fh.close()
 
 
 def extract_pirs(vcf_loc, vcf_stem, contig, start_pos,
