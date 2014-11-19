@@ -83,7 +83,7 @@ def add_parents_to_wild_cmd(wild_vcf_stem, cross_vcf_stem,
 def split_vcfs_region(vcf_loc, vcf_stem, contig, start_pos, stop_pos, outdir):
     split_command = "vcftools --vcf {FILE} --out {OUT} --chr {CHR} " \
                     "--from-bp {START} --to-bp {STOP} --recode"
-    bgzip_command = 'gzip {OUT}.vcf'
+    bgzip_command = 'gzip -f {OUT}.vcf'
     touch_command = 'touch {FILE}'
 
     vcf_out = os.path.join(outdir, vcf_stem + '.' +
