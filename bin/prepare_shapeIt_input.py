@@ -163,13 +163,13 @@ ph.utils.create_sh_script(
         vcf_stem=truth_root_vcf,
         excl_sites=me_sites))
 
-# A Evaluation
+# Evaluation a)
 ph.utils.create_sh_script(
     os.path.join(eval_dirs['script'], me_filter_name),
     mendelian_error_filter_cmd(
         vcf_stem=eval_root_vcf,
         excl_sites=me_sites))
-# B Evaluation
+# Evaluation b)
 ph.utils.create_sh_script(
     os.path.join(eval_dirs['script'], 'combine_set.sh'),
     add_parents_to_wild_cmd(eval_root_vcf, truth_root_vcf, final_eval_vcf,
@@ -201,8 +201,9 @@ ph.utils.create_sh_script(
 
 ph.utils.create_sh_script(
     os.path.join(eval_dirs['script'], compress_name),
-    ["gzip {0}".format(final_eval_vcf)],
-    eval_root_vcf)
+    ["gzip {0}".format(final_eval_vcf),
+     "gzip {0}".format(eval_root_vcf + 'ME_filt.vcf')],
+    final_eval_vcf+'.gz')
 
 ### 5 PIR JOBS
 # END
@@ -211,7 +212,7 @@ if args.nosubmit:
     exit(0)
 
 ### JOB SUBMISSION
-# PHASE 1
+# PHASE 1: create minimal vcfs and filter
 if not os.path.isfile(truth_root_vcf + '.vcf.gz.ok'):
     sh.qsub('-l', config['truth_prep_mem'], '-N', 'prepare_truth',
             '-j', 'y', '-S', '/bin/bash', '-o', truth_dirs['log'],
