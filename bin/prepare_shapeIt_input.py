@@ -107,6 +107,9 @@ def write_bamlist(path, dir_format, samples, contig):
 
     bams = []
     fh = open(path, 'a')
+
+    samples = [re.sub('-', '_', s) for s in samples]
+
     for s in samples:
         bam = dir_format.format(SAMPLE=s)
         try:
