@@ -186,12 +186,12 @@ class ShapeIt():
                                    [gunzip.format(self.haplotypes_f,
                                                   tmp_duo.name+'.haps'),
                                    "mv {0} {1}".format(ped_file,
-                                                       tmp_duo.name+'.samples'),
+                                                       tmp_duo.name+'.sample'),
                                    'cd ' + self.outdir,
                                    " ".join(cmd_duohmm),
                                    "gzip {0} {1}".format(self.duohmm_haps,
-                                                         self.duohmm_sample),
-                                   "touch " + self.duohmm_haps + '.gz'])
+                                                         self.duohmm_sample)],
+                                   self.duohmm_haps + '.gz')
 
         self.settings['params'] = parse_command(parameters)
 
