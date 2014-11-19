@@ -112,7 +112,8 @@ def write_bamlist(path, dir_format, samples, contig):
         try:
             assert os.path.isfile(bam)
         except AssertionError:
-            print bam, 'not found.'
+            print bam + ' was not found.'
+            print dir_format
             exit(1)
         bams.append(bam)
         fh.write("\t".join([re.sub('_', '-', s), bam, contig]) + '\n')
@@ -222,8 +223,8 @@ bamlist_path = os.path.join(config['outdir'], 'all_bams')
 if os.path.isfile(bamlist_path):
     sh.rm(bamlist_path)
 
-write_bamlist(bamlist_path, config['cross_bam_dir'], cross_samples, '3L')
 write_bamlist(bamlist_path, config['ag1000_bam_dir'], ag1000_samples, '3L')
+write_bamlist(bamlist_path, config['cross_bam_dir'], cross_samples, '3L')
 
 ### 3 SPLIT RESULTING VCFs
 window_regions = ph.utils.calc_regions(size=41963435, nbins=config['nbins'],
