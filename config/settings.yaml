@@ -12,9 +12,9 @@ truth_prep_mem: h_vmem=16G
 nbins: 25
 cross_samples: /home/njh/git/ag-crosses/meta/all_samples.txt
 cross_bam_dir: >
- /data/anopheles/ag-crosses/data/sanger_mirror/nfs/team112_internal/
- production_files/Ag/community/1_0/AGPED1/{SAMPLE}/{SAMPLE}.bam
+  /data/anopheles/ag-crosses/data/sanger_mirror/nfs/team112_internal/
+production_files/Ag/community/1_0/AGPED1/{SAMPLE}/{SAMPLE}.bam
 ag1000_samples: /home/njh/git/ag1000g/meta/phase1.AR1.samples
 ag1000_bam_dir: >
- /data/anopheles/ag1000g/data/sanger_mirror/nfs/
- team112_internal/production_files/Ag/1000g_12_09/{SAMPLE}/{SAMPLE}.bam
+  /data/anopheles/ag1000g/data/sanger_mirror/nfs/
+team112_internal/production_files/Ag/1000g_12_09/{SAMPLE}/{SAMPLE}.bam
