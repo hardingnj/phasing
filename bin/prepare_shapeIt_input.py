@@ -129,6 +129,7 @@ make_vcf_name = str(config['gq_threshold']) + '_make_vcf.sh'
 me_filter_name = str(config['gq_threshold']) + '_filter_me.sh'
 split_vcf_name = str(config['gq_threshold']) + '_split_by_region.sh'
 compress_name = str(config['gq_threshold']) + '_compress.sh'
+combine_name = str(config['gq_threshold']) + 'combine_set.sh'
 
 ### 1 : CREATE VCF files (dependencies none)
 ### 2 : FILTER BY ME SITES  (1).
@@ -171,10 +172,10 @@ ph.utils.create_sh_script(
         excl_sites=me_sites))
 # Evaluation b)
 ph.utils.create_sh_script(
-    os.path.join(eval_dirs['script'], 'combine_set.sh'),
+    os.path.join(eval_dirs['script'], combine_name),
     add_parents_to_wild_cmd(eval_root_vcf, truth_root_vcf, final_eval_vcf,
                             config['ped_file']),
-    final_eval_vcf + '.vcf')
+    final_eval_vcf)
 
 ### 3 SPLIT RESULTING VCFs
 window_regions = ph.utils.calc_regions(size=41963435, nbins=config['nbins'],
