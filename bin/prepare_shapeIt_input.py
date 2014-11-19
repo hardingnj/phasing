@@ -6,6 +6,7 @@ import yaml
 import argparse
 import phasing as ph
 import tempfile
+import re
 
 parser = argparse.ArgumentParser(description='Script to run vcf creation '
                                              'pipeline')
@@ -99,6 +100,34 @@ def split_vcfs_region(vcf_loc, vcf_stem, contig, start_pos, stop_pos, outdir):
 
     return cmd
 
+
+# Make bamlist
+# SAMPLE PATH CHR
+def write_bamlist(path, dir_format, samples, contig):
+
+    bams = []
+    f = open(path, 'a')
+    for s in samples:
+        bam = dir_format.format(SAMPLE=s)
+        assert os.path.isfile(bam)
+        bams.append(bam)
+        f.write("\t".join([re.sub('_', '-', s), bam, contig]) + '\n')
+    f.close()
+
+
+def extract_pirs(vcf_loc, vcf_stem, contig, start_pos,
+                 stop_pos, outdir, bamlist):
+
+    extract_pir = "/home/njh/exec/bin/extractPIRs --vcf {VCF}.vcf.gz " \
+                  "--out {OUT}.pir --bam {BAM}"
+    vcf_in = os.path.join(vcf_loc, vcf_stem + '.' +
+                          "_".join([contig, str(start_pos), str(stop_pos)]))
+    outfile = os.path.join(outdir, vcf_stem + '.' +
+                           "_".join([contig, str(start_pos), str(stop_pos)]))
+
+    cmd = [extract_pir.format(VCF=vcf_in, OUT=outfile, BAM=bamlist)]
+    return cmd
+
 # this python script supercedes the ipynb file vcf_to_plink
 # job dependencies handled currently usign hold_jids
 
@@ -130,6 +159,7 @@ me_filter_name = str(config['gq_threshold']) + '_filter_me.sh'
 split_vcf_name = str(config['gq_threshold']) + '_split_by_region.sh'
 compress_name = str(config['gq_threshold']) + '_compress.sh'
 combine_name = str(config['gq_threshold']) + '_combine_set.sh'
+pir_name = str(config['gq_threshold']) + '_extract_pirs.sh'
 
 ### 1 : CREATE VCF files (dependencies none)
 ### 2 : FILTER BY ME SITES  (1).
@@ -177,6 +207,20 @@ ph.utils.create_sh_script(
                             config['ped_file']),
     final_eval_vcf)
 
+### write bamfile list
+with open(config['cross_samples']) as f:
+    cross_samples = [x.strip('\n') for x in f.readlines()]
+
+with open(config['ag1000_samples']) as f:
+    ag1000_samples = [x.strip('\n') for x in f.readlines()]
+
+bamlist_path = os.path.join(config['outdir'], 'all_bams')
+if os.path.isfile(bamlist_path):
+    sh.rm(bamlist_path)
+
+write_bamlist(bamlist_path, config['cross_bam_dir'], cross_samples, '3L')
+write_bamlist(bamlist_path, config['ag1000_bam_dir'], ag1000_samples, '3L')
+
 ### 3 SPLIT RESULTING VCFs
 window_regions = ph.utils.calc_regions(size=41963435, nbins=config['nbins'],
                                        overlap=None)
@@ -184,14 +228,26 @@ window_regions = ph.utils.calc_regions(size=41963435, nbins=config['nbins'],
 for i, region in enumerate(window_regions):
     start, stop = region
     task_id = str(i + 1)
+    # split truth
     ph.utils.create_sh_script(
         os.path.join(truth_dirs['script'], task_id + '.' + split_vcf_name),
         split_vcfs_region(truth_dirs['vcf'], truth_stem + '.ME_filt', '3L',
                           start, stop, truth_dirs['vcf_regions']))
+    # pirs truth
+    ph.utils.create_sh_script(
+        os.path.join(truth_dirs['script'], task_id + '.' + pir_name),
+        extract_pirs(truth_dirs['vcf_regions'], truth_stem + '.ME_filt', '3L',
+                     start, stop, truth_dirs['PIRs'], bamlist=bamlist_path))
+    # split eval
     ph.utils.create_sh_script(
         os.path.join(eval_dirs['script'], task_id + '.' + split_vcf_name),
         split_vcfs_region(eval_dirs['vcf'], 'phasing_valuation.vcf', '3L',
                           start, stop, eval_dirs['vcf_regions']))
+    # pirs eval
+    ph.utils.create_sh_script(
+        os.path.join(eval_dirs['script'], task_id + '.' + pir_name),
+        extract_pirs(eval_dirs['vcf_regions'], eval_stem + '.ME_filt', '3L',
+                     start, stop, eval_dirs['PIRs'], bamlist=bamlist_path))
 
 
 ### 4 COMPRESS RESULTING VCF AFTER SPLIT
@@ -207,7 +263,7 @@ ph.utils.create_sh_script(
     final_eval_vcf+'.gz')
 
 ### 5 PIR JOBS
-# END
+# IN ABOVE LOOP
 
 if args.nosubmit:
     exit(0)
@@ -266,4 +322,15 @@ sh.qsub('-l', 'h_vmem=2G', '-hold_jid', 'eval_split', '-N', 'eval_compress',
         '-j', 'y', '-S', '/bin/bash', '-o', eval_dirs['log'],
         os.path.join(eval_dirs['script'], compress_name))
 
-# THEN PHASE 5 PIRs
+# PHASE 5 PIRs
+sh.qsub('-l', 'h_vmem=2G', '-hold_jid', 'truth_split',
+        '-N', 'truth_pir', '-j', 'y', '-S', '/bin/bash', '-b', 'y',
+        '-o', truth_dirs['log'], '-t', '1-'+str(config['nbins']),
+        os.path.join(truth_dirs['script'],
+                     r'${SGE_TASK_ID}.' + pir_name))
+
+sh.qsub('-l', 'h_vmem=2G', '-hold_jid', 'eval_split',
+        '-N', 'eval_pir', '-j', 'y', '-S', '/bin/bash', '-b', 'y',
+        '-o', eval_dirs['log'], '-t', '1-'+str(config['nbins']),
+        os.path.join(eval_dirs['script'],
+                     r'${SGE_TASK_ID}.' + pir_name))
