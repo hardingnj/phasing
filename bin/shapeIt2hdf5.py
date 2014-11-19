@@ -77,6 +77,7 @@ genotypes = h5file.create_earray(grp_calldata, name='genotype',
 fh_haplotypes = gzip.open(args.haplotypes, 'rb')
 while True:
     chunk = list(islice(fh_haplotypes, args.chunk_size))
+
     if not chunk:
         break
     as_np = np.array([line.rstrip().split(' ') for line in chunk])
