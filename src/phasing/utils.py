@@ -7,10 +7,7 @@ import matplotlib.pyplot as plt
 # internal
 import anhima
 import sh
-import os
-import re
-import yaml
-import algorithms
+from scipy.special import gammaln
 from itertools import izip
 import pandas as pd
 import hashlib
@@ -391,3 +388,66 @@ def create_samples_file(path=None, output=None, samples=None):
 
         line = " ".join([family, s, '0', paternal_id, maternal_id, '0', '-9'])
         fh.write(line + "\n")
+
+
+def return_classification(geno_data):
+    return np.prod(geno_data + 1, axis=1)
+
+
+def log_factorial(x):
+    """Returns the logarithm of x!
+    Also accepts lists and NumPy arrays in place of x."""
+    return gammaln(np.array(x)+1)
+
+
+def memoize(function):
+    memo = {}
+
+    def wrapper(*inargs):
+        args = np.vstack(inargs).tostring()
+        if args in memo:
+            return memo[args]
+        else:
+            rv = function(*inargs)
+            memo[args] = rv
+            return rv
+    return wrapper
+
+
+@memoize
+def log_multinomial(xs, ps):
+    xs, ps = np.array(xs), np.array(ps)
+    assert ps.sum() == 1
+    result = log_factorial(np.sum(xs)) - np.sum(log_factorial(xs)) + \
+        np.sum(xs * np.log(ps))
+    return result
+
+
+def get_error_likelihood(parental_genotypes, progeny_genotypes, pe=0.001):
+
+    # classification = {1: 'HomRef_HomRef', 2: 'HomRef_Het',
+    #                   3: 'HomRef_HomAlt', 4: 'Het_Het',
+    #                   6: 'HomAlt_Het', 9: 'HomAlt_HomAlt'}
+
+    lookup = {1: (1-2*pe, pe, pe),
+              2: (0.5-pe/2, 0.5-pe/2, pe),
+              3: (pe, 1-2*pe, pe),
+              4: (0.25, 0.5, 0.25),
+              6: (pe, 0.5-pe/2, 0.5-pe/2),
+              9: (pe, pe, 1-2*pe)}
+
+    counts = np.vstack([np.sum(progeny_genotypes == 0, axis=1),
+                        np.sum(progeny_genotypes == 1, axis=1),
+                        np.sum(progeny_genotypes == 2, axis=1)])
+
+    classification = return_classification(parental_genotypes)
+    res = list()
+    for i in xrange(parental_genotypes.shape[0]):
+
+        r = log_multinomial(counts[:, i],
+                            lookup[classification[i]])
+
+        v = np.max([log_multinomial(counts[:, i], lookup[key]) for key
+                    in lookup.keys() if key != classification[i]])
+        res.append(r - v)
+    return np.array(res)

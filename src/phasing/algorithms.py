@@ -61,69 +61,6 @@ def parse_command(parameters):
     return command_dict
 
 
-class DuoHMM(tool.Tool):
-
-    @staticmethod
-    def _get_version(executable):
-
-        duohmm_s = os.popen(executable).read()
-
-        p = re.compile("Version: (.+)\n")  # parentheses for capture groups
-        m = p.search(str(duohmm_s))
-        if m:
-            return m.group(1)
-        else:
-            print(duohmm_s)
-            raise Exception('Version not parsed.')
-
-    # This is a pretty stripped down class, just an add on to ShapeIt.
-    def __init__(self, parameters, outdir, executable='duohmm', version=None,
-                 run_id=None):
-        if version is None:
-            version = self._get_version(executable)
-
-        tool.Tool.__init__(self,
-                           parameters=parameters,
-                           executable=executable,
-                           outdir=outdir,
-                           name=DuoHMM.__name__,
-                           version=version,
-                           run_id=run_id,
-                           manipulate_parameters=self._manipulate_parameters)
-
-    def _manipulate_parameters(self, parameters):
-
-        #duohmm -H duo -O duohmm_haplotypes -G possible_GEs -R recomb_map
-        self.inputroot = os.path.join(self.basedir, self.run_id)
-
-        self.outfile = os.path.join(self.outdir, self.run_id)
-        self.haplotypes_f = self.outfile + '.haps.gz'
-        self.phased_f = self.outfile + '.sample'
-
-        self.genotype_errors = os.path.join(self.outdir, 'genotype_errors.txt')
-        self.recombination_map = os.path.join(self.outdir, 'recombination.txt')
-
-        # looks for expected files, if not found renames them.
-        # (For backwards compatability)
-        if not os.path.isfile(os.path.join(self.basedir,
-                                           self.run_id + '.haps')):
-            try:
-                os.rename(os.path.join(self.basedir, 'haplotypes'),
-                          os.path.join(self.basedir, self.run_id + '.haps'))
-                os.rename(os.path.join(self.basedir, 'phased'),
-                          os.path.join(self.basedir, self.run_id + '.sample'))
-            except OSError:
-                pass
-
-        for f in ('-H', '-O', '-G', '-R'):
-            assert f not in parameters
-
-        return parameters + ['-H', self.inputroot,
-                             '-O', self.outfile,
-                             '-G', self.genotype_errors,
-                             '-R', self.recombination_map]
-
-
 class ShapeIt():
 
     @staticmethod
@@ -145,10 +82,12 @@ class ShapeIt():
     def __init__(self, outdir, executable='shapeit',
                  ligate_exec='/home/njh/exec/ligateHAPLOTYPES/bin'
                              '/ligateHAPLOTYPES',
+                 duohmm_exec='/home/njh/exec/bin/duohmm',
                  version=None):
 
         self.executable = executable
         self.ligate_bin = ligate_exec
+        self.duohmm_bin = duohmm_exec
         if version is None:
             version = self._get_version(self.executable)
         self.version = version
@@ -161,6 +100,7 @@ class ShapeIt():
         self.basedir = outdir
         self.si_job_list = list()
         self.ligate_script = None
+        self.duohmm_script = None
         self.dirs = {d: os.path.join(self.outdir, d) for d in ('log', 'script')}
         [sh.mkdir(d, '-p') for d in self.dirs.values() if not os.path.isdir(d)]
 
@@ -168,6 +108,10 @@ class ShapeIt():
                                          '_final.haps.gz')
         self.phased_f = os.path.join(self.outdir, self.run_id +
                                      '_final.samples.gz')
+
+        self.duohmm_haps = None
+        self.duohmm_sample = None
+
         self.param_f = os.path.join(self.outdir, self.run_id + '.yaml')
         self.settings = {'run_id': self.run_id, 'version': self.version,
                          'executable': self.executable, 'outdir': self.outdir,
@@ -175,7 +119,7 @@ class ShapeIt():
                          'samples': self.phased_f}
 
     def setup_region_jobs(self, parameters, regions=None, vcf_file=None,
-                          pirs=None, duohmm=False):
+                          pirs=None, duohmm=False, ped_file=None):
 
         # basically, set up a shapeIT job for each region. This may be several
         # lines long.
@@ -223,12 +167,35 @@ class ShapeIt():
                                 " ".join(cmd_ligate),
                                 'rm ' + tmp.name],
                                self.haplotypes_f)
+
+        if duohmm:
+            tmp_duo = tempfile.NamedTemporaryFile(delete=False)
+            self.duohmm_script = os.path.join(self.dirs['script'],
+                                              'duohmm.sh')
+
+            duohmm_root = os.path.join(self.outdir, self.run_id + '_duohmm')
+            self.duohmm_haps = duohmm_root + '.haps'
+            self.duohmm_sample = duohmm_root + '.sample'
+
+            cmd_duohmm = [self.duohmm_bin, '-H', tmp_duo.name,
+                          '-O', duohmm_root,
+                          '-G', duohmm_root + '.GE.txt',
+                          '-R', duohmm_root + '.RC.txt']
+
+            utils.create_sh_script(self.duohmm_script,
+                                   [gunzip.format(self.haplotypes_f,
+                                                  tmp_duo.name+'.haps'),
+                                   "mv {0} {1}".format(ped_file,
+                                                       tmp_duo.name+'.samples'),
+                                   'cd ' + self.outdir,
+                                   " ".join(cmd_duohmm),
+                                   "gzip {0} {1}".format(self.duohmm_haps,
+                                                         self.duohmm_sample),
+                                   "touch " + self.duohmm_haps + '.gz'])
+
         self.settings['params'] = parse_command(parameters)
 
-    def parse_output(self):
-        return ShapeIt.process_shapeit_output(self.haplotypes_f, self.phased_f)
-
-    def run_region(self, si_args, li_args):
+    def run_region(self, si_args, li_args, dm_args):
 
         qsub_parameters = ['-S', '/bin/bash',
                            '-j', 'y',
@@ -244,35 +211,10 @@ class ShapeIt():
         print sh.qsub('-hold_jid', self.run_id, '-N', 'ligate' + self.run_id,
                       qsub_parameters + li_args, self.ligate_script)
 
-    @staticmethod
-    def process_shapeit_output(haplotypes, samples):
-        # returns a genotype matrix in numpy format, matching anhima specs
-        # and a list with the sample name of each column
-        genotype_cache = haplotypes + '_genotypes.npy'
-        pos_cache = haplotypes + '_positions.npy'
-
-        # load haplotype data:
-        if os.path.isfile(genotype_cache):
-            htype_gts = np.load(genotype_cache)
-            htype_pos = np.load(pos_cache)
-        else:
-            haplotype_data = pd.read_csv(haplotypes, sep=" ", header=None)
-
-            haplotype_data = haplotype_data.rename(columns={
-                0: 'contig', 1: 'id', 2: 'pos', 3: 'A1', 4: 'A2'})
-            # store as 3D genotypes
-            htype_gts = np.array(haplotype_data.ix[:, 5:]).reshape((
-                haplotype_data.shape[0], -1, 2))
-            htype_pos = np.array(haplotype_data.pos.values)
-            np.save(genotype_cache, htype_gts)
-            np.save(pos_cache, htype_pos)
-
-        sample_data = pd.read_csv(samples, sep=" ", header=0, skiprows=0)
-        sample_data = sample_data.ix[1:]
-
-        assert htype_gts.shape[1] == sample_data.shape[0]
-
-        return htype_gts, sample_data.ID_2.tolist(), {'pos': htype_pos}
+        if self.duohmm_script is not None:
+            print sh.qsub('-hold_jid', 'ligate' + self.run_id,
+                          '-N', 'duohmm' + self.run_id,
+                          qsub_parameters + dm_args, self.duohmm_script)
 
 
 # collection of methods for submission of MERLIN jobs with various defaults
