@@ -214,10 +214,10 @@ ph.utils.create_sh_script(
 
 ### write bamfile list
 with open(config['cross_samples']) as f_cr:
-    cross_samples = [x.strip('\n') for x in f_cr.readlines()]
+    cross_samples = [x.rstrip() for x in f_cr.readlines()]
 
 with open(config['ag1000_samples']) as f_ag:
-    ag1000_samples = [x.strip('\n') for x in f_ag.readlines()]
+    ag1000_samples = [x.rstrip() for x in f_ag.readlines()]
 
 bamlist_path = os.path.join(config['outdir'], 'all_bams')
 if os.path.isfile(bamlist_path):
