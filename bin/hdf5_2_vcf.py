@@ -17,7 +17,7 @@ parser.add_argument('input', help='input hdf5 file')
 parser.add_argument('output', help='output file stem')
 
 parser.add_argument('--keepmissing', '-M', action='store_true', default=False)
-parser.add_argument('--cutoff', '-C', action='store', default=0.2,
+parser.add_argument('--cutoff', '-C', action='store', default=0.04,
                     dest='missingcutoff', type=float,
                     help='Maximum missing GTs tolerated in a sample')
 parser.add_argument('--pedigree', '-P', action='store', dest='pedigree',
@@ -59,23 +59,29 @@ for k in h5_handle.keys():
     genotypes = anhima.gt.as_012(h5_handle[k]['calldata']['genotype'][:])
     samples = tuple(h5_handle[k]['samples'][:].tolist())
 
-    missing_genotypes = (genotypes == -1)
-    count_missing = missing_genotypes.sum(axis=0)
-    assert count_missing.size == len(samples)
+    missing_genotypes = np.array(genotypes == -1)
 
-    missing_rate = count_missing/float(genotypes.shape[0])
+    consecutive_miss = np.apply_along_axis(phasing.utils.get_consecutive_true,
+                                           0, missing_genotypes)
+    missing_rate = consecutive_miss/float(genotypes.shape[0])
+    print "Max consecutive missing sites:", consecutive_miss.max()
+    print "Rate max:", missing_rate.max()
     ok_samples = missing_rate < args.missingcutoff
 
     if np.any(~ok_samples):
         msg = "The following {0} samples are excluded as they have a " \
-              "missingness rate of >= {1}:".format(str(np.sum(~ok_samples)),
-                                                   str(args.missingcutoff))
-        print(msg, " ".join(np.compress(~ok_samples, samples).tolist()))
+              "a consecutive missing gt run of >= {1} of all calls:" \
+            .format(str(np.sum(~ok_samples)), str(args.missingcutoff))
+        print msg
+
+        for sa, rt in zip(np.compress(~ok_samples, samples).tolist(),
+                          np.compress(~ok_samples, missing_rate).tolist()):
+            print sa + ": " + str(rt)
 
         samples = tuple(np.compress(ok_samples, samples).tolist())
         genotypes = genotypes[:, ok_samples]
     else:
-        print "All samples meet the missingness threshold ({0})" \
+        print "All samples meet the missingness run threshold ({0})" \
             .format(str(args.missingcutoff))
 
     if args.pedigree is not None:
