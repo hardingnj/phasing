@@ -306,7 +306,7 @@ if not os.path.isfile(final_eval_vcf + '.ok'):
     sh.qsub('-l', 'h_vmem=4G', '-hold_jid', 'me_filter_eval,me_filter_truth',
             '-N', 'combine_eval', '-j', 'y', '-S', '/bin/bash',
             '-o', eval_dirs['log'],
-            os.path.join(eval_dirs['script'], 'combine_set.sh'))
+            os.path.join(eval_dirs['script'], combine_name))
 
 
 # PHASE 3: splitting
