@@ -26,7 +26,7 @@ parser.add_argument('-P', '--pedigree', dest='pedigree', action='store',
 
 parser.add_argument('-O', '--overwrite', dest='writemode', action='store_const',
                     const='w', default='w-',
-                    help='Pedigree table for calculation of mendel errors')
+                    help='Overwrites hdf5 file if already exists')
 # to do: add option to only filter individual crosses.
 
 args = parser.parse_args()
@@ -41,7 +41,7 @@ if args.pedigree is not None:
 if args.pedigree is not None:
     fh = open(args.output + '_me.txt', args.writemode)
 
-# rememeber to act on all 1st level keys!
+# remember to act on all 1st level keys!
 for k in unfiltered_h5.keys():
     # copy groups to new object
     unfiltered_h5.visititems(copy_item)
@@ -65,10 +65,19 @@ for k in unfiltered_h5.keys():
                 'parent']])
             prg_idx = np.array([samples.index(x) for x in pedigree[c][
                 'progeny']])
+
+            # mask bad parental genotypes
+            parent_e = ph.utils.get_error_likelihood(genotypes[:, par_idx],
+                                                     genotypes[:, prg_idx])
+            genotypes[(parent_e < 0), par_idx] = (-1, -1)
+
+            # mendelian errors:
             me = anhima.ped.diploid_mendelian_error(genotypes[:, par_idx],
                                                     genotypes[:, prg_idx])
-
             mendelian_error.append(np.any(me > 0, axis=1))
+
+
+
 
         variant_mask = np.vstack(mendelian_error).any(axis=0)
 
@@ -82,4 +91,4 @@ for k in unfiltered_h5.keys():
         data=genotypes,
         chunks=(1000, 10, 2),
         compression='gzip',
-        compression_opts=9)
+        compression_opts=1)

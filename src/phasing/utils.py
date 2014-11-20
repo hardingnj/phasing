@@ -440,7 +440,7 @@ def get_error_likelihood(parental_genotypes, progeny_genotypes, pe=0.001):
                         np.sum(progeny_genotypes == 1, axis=1),
                         np.sum(progeny_genotypes == 2, axis=1)])
 
-    classification = return_classification(parental_genotypes)
+    classification = return_classification(anhima.gt.as_012(parental_genotypes))
     res = list()
     for i in xrange(parental_genotypes.shape[0]):
 
