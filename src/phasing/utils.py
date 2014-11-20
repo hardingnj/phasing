@@ -424,6 +424,8 @@ def log_multinomial(xs, ps):
 
 
 def get_error_likelihood(parental_genotypes, progeny_genotypes, pe=0.001):
+    """Returns the log likelihood that the stated parental genotypes are
+     correct. """
 
     # classification = {1: 'HomRef_HomRef', 2: 'HomRef_Het',
     #                   3: 'HomRef_HomAlt', 4: 'Het_Het',
@@ -436,14 +438,20 @@ def get_error_likelihood(parental_genotypes, progeny_genotypes, pe=0.001):
               6: (pe, 0.5-pe/2, 0.5-pe/2),
               9: (pe, pe, 1-2*pe)}
 
+    parental_genotypes = anhima.gt.as_012(parental_genotypes)
+    progeny_genotypes = anhima.gt.as_012(progeny_genotypes)
+
     counts = np.vstack([np.sum(progeny_genotypes == 0, axis=1),
                         np.sum(progeny_genotypes == 1, axis=1),
                         np.sum(progeny_genotypes == 2, axis=1)])
 
-    classification = return_classification(anhima.gt.as_012(parental_genotypes))
+    classification = return_classification(parental_genotypes)
+    assert classification.ndim == 1
     res = list()
-    for i in xrange(parental_genotypes.shape[0]):
-
+    for i in xrange(classification.size):
+        if classification[i] == 0:
+            res.append(0.0)
+            continue
         r = log_multinomial(counts[:, i],
                             lookup[classification[i]])
 
@@ -451,3 +459,9 @@ def get_error_likelihood(parental_genotypes, progeny_genotypes, pe=0.001):
                     in lookup.keys() if key != classification[i]])
         res.append(r - v)
     return np.array(res)
+
+
+def get_consecutive_true(condition):
+    return np.diff(np.where(np.concatenate(([condition[0]],
+                                            condition[:-1] != condition[1:],
+                                            [True])))[0])[::2].max()
