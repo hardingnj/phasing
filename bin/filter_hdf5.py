@@ -66,18 +66,16 @@ for k in unfiltered_h5.keys():
             prg_idx = np.array([samples.index(x) for x in pedigree[c][
                 'progeny']])
 
-            # mask bad parental genotypes
+            # identify bad parental genotypes
             parent_e = ph.utils.get_error_likelihood(genotypes[:, par_idx],
                                                      genotypes[:, prg_idx])
-            genotypes[(parent_e < 0), par_idx] = (-1, -1)
+            # mask
+            genotypes[np.ix_(np.where(parent_e < 0)[0], par_idx)] = (-1, -1)
 
             # mendelian errors:
             me = anhima.ped.diploid_mendelian_error(genotypes[:, par_idx],
                                                     genotypes[:, prg_idx])
             mendelian_error.append(np.any(me > 0, axis=1))
-
-
-
 
         variant_mask = np.vstack(mendelian_error).any(axis=0)
 
