@@ -10,19 +10,19 @@ PEDTB=/home/njh/git/ag-crosses/meta/tbl_sample_ped.txt
 MINGQ=40
 OUTDI=/data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/callsets/autosome/truth/
 
-# This section makes the h5 file
-mkdir ${OUTDI}/gq${MINGQ} 
-$PYENV $PYBIN/filter_hdf5.py $RAWH5 ${OUTDI}/gq${MINGQ}/3L_ag-cross.gq${MINGQ} -O -Q ${MINGQ} -P $PEDTB
-touch ${OUTDI}/gq${MINGQ}/3L_ag-cross.gq${MINGQ}.h5.ok
+WORKD=${OUTDI}/gq${MINGQ} 
+FSTEM=3L_ag-cross.gq${MINGQ}
 
-$PYENV ${PYBIN}/hdf5_2_vcf.py ${OUTDI}/gq${MINGQ}/3L_ag-cross.gq${MINGQ}.h5 ${OUTDI}/gq${MINGQ}/3L_ag-cross.gq${MINGQ} -P $PEDTB
-bgzip ${OUTDI}/gq${MINGQ}/3L_ag-cross.gq${MINGQ}.vcf
-tabix -fp vcf ${OUTDI}/gq${MINGQ}/3L_ag-cross.gq${MINGQ}.vcf.gz
-touch ${OUTDI}/gq${MINGQ}/3L_ag-cross.gq${MINGQ}.vcf.gz.ok
-rm ${OUTDI}/gq${MINGQ}/3L_ag-cross.gq${MINGQ}.h5
+# This section makes the h5 file
+mkdir $WORKD
+$PYENV $PYBIN/filter_hdf5.py $RAWH5 $WORKD/$FSTEM -O -Q ${MINGQ} -P $PEDTB
+touch ${WORKD}/${FSTEM}.h5.ok
+
+$PYENV ${PYBIN}/hdf5_2_vcf.py ${WORKD}/${FSTEM}.h5 ${WORKD}/${FSTEM} -P $PEDTB
+bgzip ${WORKD}/${FSTEM}.vcf
+tabix -fp vcf ${WORKD}/${FSTEM}.vcf.gz
+touch ${WORKD}/${FSTEM}.vcf.gz.ok
+rm ${WORKD}/${FSTEM}.h5
 
 # this section splits the vcf into the separate cross parts
-# get samples 
-vcfkeepsamples [SAMPLES] | perl -ne 'if ($_ =~ m/^#/ || $_ =~ m/0\/0|0\/1|1\/1/) { print $_;}' | bgzip -c >  ${CROSS}.vcf.gz
-
-
+$PYENV $PYBIN/split_vcf.py ${WORKD}/${FSTEM}.vcf.gz ${WORKD}/${FSTEM} -P $PEDTB 
