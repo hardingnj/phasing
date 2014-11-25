@@ -16,13 +16,12 @@ args = parser.parse_args()
 
 pedigree, _ = ph.utils.read_pedigree_table(args.pedigree)
 
-command_string = r"{PATH} {FILE} {SAMPLES} | perl -ne 'if ($_ =~ m/^#/ || $_ =~ m/0\/0|0\/1|1\/1/) { print $_;}' | bgzip -c >  {OUTPUT}.vcf.gz"
+command_string = r"| perl -ne 'if ($_ =~ m/^#/ || $_ =~ m/0\/0|0\/1|1\/1/) " \
+                 r"{ print $_;}' | bgzip -c >"
 
 for k in pedigree.keys():
-    samples = " ".join([[pedigree[k]['parent'] + pedigree[k]['progeny']])
-    print "Splitting " + k ": " + samples  
-	cmd = command_string.format(PATH=args.binary,
-                                FILE=args.input,
-                                SAMPLES=samples,
-                                OUTPUT=args.output + '_' + k + '.vcf.gz')
+    samples = " ".join(pedigree[k]['parent'] + pedigree[k]['progeny'])
+    print "Splitting " + k + ": " + samples
+    cmd = " ".join([args.binary, args.input, samples, command_string,
+                    args.output + '_' + k + '.vcf.gz'])
     os.system(cmd)
