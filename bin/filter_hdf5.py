@@ -8,7 +8,8 @@ import os
 
 def copy_item(name, obj):
     group, dataset = os.path.split(name)
-    if isinstance(obj, h5py.Dataset) and dataset != 'genotype':
+    if isinstance(obj, h5py.Dataset) \
+            and dataset != 'genotype' and dataset in fields:
         print 'copying ' + name + '...'
         filtered_h5.require_group(group)
         unfiltered_h5.copy(name, filtered_h5[group])
@@ -27,12 +28,17 @@ parser.add_argument('-P', '--pedigree', dest='pedigree', action='store',
 parser.add_argument('-O', '--overwrite', dest='writemode', action='store_const',
                     const='w', default='w-',
                     help='Overwrites hdf5 file if already exists')
+parser.add_argument('-F', '--fields', dest='fields', action='store',
+                    default='POS,REF,ALT,GQ,ID,CHROM,samples',
+                    help='Fields that make it into hdf5 filtered')
 # to do: add option to only filter individual crosses.
 
 args = parser.parse_args()
 
 unfiltered_h5 = h5py.File(args.input, mode='r')
 filtered_h5 = h5py.File(args.output + '.h5', mode=args.writemode)
+
+fields = args.fields.split(',')
 
 # load ped file if defined
 if args.pedigree is not None:
