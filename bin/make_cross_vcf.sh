@@ -4,7 +4,7 @@ set -o pipefail
 
 # This is a bash script that does much of the heavy lifting for the creation of VCF files
 PYENV=/home/njh/pyenv/science/bin/python
-PHBIN=/home/njh/git/phasing/bin
+PYBIN=/home/njh/git/phasing/bin
 RAWH5=/data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/h5/3L_ag-cross.h5 
 PEDTB=/home/njh/git/ag-crosses/meta/tbl_sample_ped.txt
 MINGQ=40
