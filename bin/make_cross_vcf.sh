@@ -5,6 +5,7 @@ set -o pipefail
 # This is a bash script that does much of the heavy lifting for the creation of VCF files
 PYENV=/home/njh/pyenv/science/bin/python
 PYBIN=/home/njh/git/phasing/bin
+VKEEP=/home/njh/exec/bin/vcfkeepsamples
 RAWH5=/data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/h5/3L_ag-cross.h5 
 PEDTB=/home/njh/git/ag-crosses/meta/tbl_sample_ped.txt
 MINGQ=40
@@ -40,4 +41,4 @@ touch ${WORKD}/${FSTEM}_me.vcf.gz.ok
 
 # this section splits the vcf into the separate cross parts
 $PYENV $PYBIN/split_vcf.py ${WORKD}/${FSTEM}_me.vcf.gz ${WORKD}/${FSTEM} \
-  -P $PEDTB
+  -P $PEDTB -B $VKEEP

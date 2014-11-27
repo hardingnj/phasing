@@ -10,8 +10,8 @@ parser.add_argument('output', help='output file stem')
 parser.add_argument('-P', '--pedigree', dest='pedigree', action='store',
                     help='Pedigree table for calculation of mendel errors')
 parser.add_argument('-B', '--binary', dest='binary', action='store',
+                    default='vcfkeepsamples',
                     help='Path to vcfkeepsamples executable')
-
 args = parser.parse_args()
 
 pedigree, _ = ph.utils.read_pedigree_table(args.pedigree)
