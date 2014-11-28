@@ -224,7 +224,8 @@ class ShapeIt():
         self.checksum_file = vcf_file
 
         cmd_shape_it = " ".join([self.executable] + parameters +
-                                [self.haplotypes_f, self.phased_f])
+                                ['--output-max', self.haplotypes_f,
+                                 self.phased_f])
 
         self.si_script = os.path.join(self.dirs['script'], 'shapeIt.sh')
         utils.create_sh_script(filename=self.si_script,
@@ -269,7 +270,8 @@ class ShapeIt():
         yaml.dump(self.settings,
                   stream=open(self.param_f, 'w'))
 
-        sh.qsub('-N', self.run_id, qsub_parameters, si_args, self.si_script)
+        print sh.qsub('-N', self.run_id, qsub_parameters,
+                      si_args, self.si_script)
         if self.duohmm_script is not None:
             print sh.qsub('-hold_jid', self.run_id,
                           '-N', 'duohmm' + self.run_id,
