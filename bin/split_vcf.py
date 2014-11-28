@@ -3,16 +3,19 @@ import phasing as ph
 import os
 
 
-def make_sample_file(sample_list, ped_dict, filepath):
+def make_sample_file(sample_list, ped_dict, family_id, filepath):
+
     father, mother = ped_dict['parent']
     fh = open(filepath, 'w')
     fh.write('ID_1 ID_2 missing father mother sex plink_pheno' + "\n")
     fh.write('0 0 0 D D D B' + "\n")
-    for s in sample_list:
+    for i, s in enumerate(sample_list):
         if s in ped_dict['parent']:
-            fh.write(" ".join([s, '0', '0', '0', '0', '-9']) + "\n")
+            fh.write(" ".join([family_id + '_' + str(i), s, '0',
+                               '0', '0', '0', '-9']) + "\n")
         elif s in ped_dict['progeny']:
-            fh.write(" ".join([s, '0', father, mother, '0', '-9']) + "\n")
+            fh.write(" ".join([family_id + '_' + str(i), s, '0',
+                               father, mother, '0', '-9']) + "\n")
         else:
             raise Exception('Sample not found in dict.')
     fh.close()
@@ -43,4 +46,5 @@ for k in pedigree.keys():
 
     make_sample_file(sample_list=samples.split(' '),
                      ped_dict=pedigree[k],
+                     family_id=k,
                      filepath=args.output + '_' + k + '.sample')
