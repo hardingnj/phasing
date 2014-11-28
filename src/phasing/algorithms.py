@@ -227,7 +227,7 @@ class ShapeIt():
                                 [self.haplotypes_f, self.phased_f])
 
         self.si_script = os.path.join(self.dirs['script'], 'shapeIt.sh')
-        utils.create_sh_script(filename=script_name,
+        utils.create_sh_script(filename=self.si_script,
                                commands=['cd ' + self.outdir,
                                          cmd_shape_it],
                                outfile=self.haplotypes_f)
