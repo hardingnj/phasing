@@ -42,7 +42,7 @@ for k in pedigree.keys():
     print "Splitting " + k + ": " + samples
     cmd = " ".join([args.binary, args.input, samples, command_string,
                     args.output + '_' + k + '.vcf.gz'])
-    #os.system(cmd)
+    os.system(cmd)
 
     make_sample_file(sample_list=samples.split(' '),
                      ped_dict=pedigree[k],
