@@ -11,10 +11,10 @@ def make_sample_file(sample_list, ped_dict, family_id, filepath):
     fh.write('0 0 0 D D D B' + "\n")
     for i, s in enumerate(sample_list):
         if s in ped_dict['parent']:
-            fh.write(" ".join([family_id + '_' + str(i), s, '0',
+            fh.write(" ".join([family_id + '_' + str(i+1), s, '0',
                                '0', '0', '0', '-9']) + "\n")
         elif s in ped_dict['progeny']:
-            fh.write(" ".join([family_id + '_' + str(i), s, '0',
+            fh.write(" ".join([family_id + '_' + str(i+1), s, '0',
                                father, mother, '0', '-9']) + "\n")
         else:
             raise Exception('Sample not found in dict.')
@@ -42,7 +42,7 @@ for k in pedigree.keys():
     print "Splitting " + k + ": " + samples
     cmd = " ".join([args.binary, args.input, samples, command_string,
                     args.output + '_' + k + '.vcf.gz'])
-    os.system(cmd)
+    #os.system(cmd)
 
     make_sample_file(sample_list=samples.split(' '),
                      ped_dict=pedigree[k],
