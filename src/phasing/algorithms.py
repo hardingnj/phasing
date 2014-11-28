@@ -101,6 +101,7 @@ class ShapeIt():
         self.si_job_list = list()
         self.ligate_script = None
         self.duohmm_script = None
+        self.si_script = None
         self.dirs = {d: os.path.join(self.outdir, d) for d in ('log', 'script')}
         [sh.mkdir(d, '-p') for d in self.dirs.values() if not os.path.isdir(d)]
 
@@ -119,7 +120,7 @@ class ShapeIt():
                          'samples': self.phased_f}
 
     def setup_region_jobs(self, parameters, regions=None, vcf_file=None,
-                          pirs=None, duohmm=False, ped_file=None):
+                          pirs=None, duohmm=False, sample_file=None):
 
         # basically, set up a shapeIT job for each region. This may be several
         # lines long.
@@ -185,7 +186,7 @@ class ShapeIt():
             utils.create_sh_script(self.duohmm_script,
                                    [gunzip.format(self.haplotypes_f,
                                                   tmp_duo.name+'.haps'),
-                                   "mv {0} {1}".format(ped_file,
+                                   "mv {0} {1}".format(sample_file,
                                                        tmp_duo.name+'.sample'),
                                    'cd ' + self.outdir,
                                    " ".join(cmd_duohmm),
@@ -213,6 +214,64 @@ class ShapeIt():
 
         if self.duohmm_script is not None:
             print sh.qsub('-hold_jid', 'ligate' + self.run_id,
+                          '-N', 'duohmm' + self.run_id,
+                          qsub_parameters + dm_args, self.duohmm_script)
+
+    def setup_single_job(self, parameters, vcf_file, duohmm, sample_file=None):
+        # basically, set up a shapeIT job for each region. This may be several
+        # lines long.
+        parameters = [str(x) for x in parameters] + ['--input-vcf', vcf_file]
+        self.checksum_file = vcf_file
+
+        cmd_shape_it = " ".join([self.executable] + parameters +
+                                [self.haplotypes_f, self.phased_f])
+
+        self.si_script = os.path.join(self.dirs['script'], 'shapeIt.sh')
+        utils.create_sh_script(filename=script_name,
+                               commands=['cd ' + self.outdir,
+                                         cmd_shape_it],
+                               outfile=self.haplotypes_f)
+
+        if duohmm:
+            gunzip = "gunzip -c {0} > {1}"
+            tmp_duo = tempfile.NamedTemporaryFile(delete=False)
+            self.duohmm_script = os.path.join(self.dirs['script'],
+                                              'duohmm.sh')
+
+            duohmm_root = os.path.join(self.outdir, self.run_id + '_duohmm')
+            self.duohmm_haps = duohmm_root + '.haps'
+            self.duohmm_sample = duohmm_root + '.sample'
+
+            cmd_duohmm = [self.duohmm_bin, '-H', tmp_duo.name,
+                          '-O', duohmm_root,
+                          '-G', duohmm_root + '.GE.txt',
+                          '-R', duohmm_root + '.RC.txt']
+
+            utils.create_sh_script(self.duohmm_script,
+                                   [gunzip.format(self.haplotypes_f,
+                                                  tmp_duo.name+'.haps'),
+                                   "mv {0} {1}".format(sample_file,
+                                                       tmp_duo.name+'.sample'),
+                                   'cd ' + self.outdir,
+                                   " ".join(cmd_duohmm),
+                                   "gzip {0} {1}".format(self.duohmm_haps,
+                                                         self.duohmm_sample)],
+                                   self.duohmm_haps + '.gz')
+        self.settings['params'] = parse_command(parameters)
+
+    def run_single(self, si_args, dm_args):
+
+        qsub_parameters = ['-S', '/bin/bash',
+                           '-j', 'y',
+                           '-o', self.dirs['log']]
+        # get checksum
+        self.settings['checksum'] = utils.md5_for_file(self.checksum_file)
+        yaml.dump(self.settings,
+                  stream=open(self.param_f, 'w'))
+
+        sh.qsub('-N', self.run_id, qsub_parameters, si_args, self.si_script)
+        if self.duohmm_script is not None:
+            print sh.qsub('-hold_jid', self.run_id,
                           '-N', 'duohmm' + self.run_id,
                           qsub_parameters + dm_args, self.duohmm_script)
 
