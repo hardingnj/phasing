@@ -39,6 +39,7 @@ bgzip ${WORKD}/${FSTEM}_me.vcf
 tabix -fp vcf ${WORKD}/${FSTEM}_me.vcf.gz
 touch ${WORKD}/${FSTEM}_me.vcf.gz.ok
 
-# this section splits the vcf into the separate cross parts
+# this section splits the vcf into the separate cross parts and creates a
+# sample file
 $PYENV $PYBIN/split_vcf.py ${WORKD}/${FSTEM}_me.vcf.gz ${WORKD}/${FSTEM} \
   -P $PEDTB -B $VKEEP
