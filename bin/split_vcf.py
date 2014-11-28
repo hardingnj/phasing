@@ -9,7 +9,12 @@ def make_sample_file(sample_list, ped_dict, filepath):
     fh.write('ID_1 ID_2 missing father mother sex plink_pheno' + "\n")
     fh.write('0 0 0 D D D B' + "\n")
     for s in sample_list:
-        fh.write(" ".join([s, '0', father, mother, '0', '-9']) + "\n")
+        if s in ped_dict['parent']:
+            fh.write(" ".join([s, '0', '0', '0', '0', '-9']) + "\n")
+        elif s in ped_dict['progeny']:
+            fh.write(" ".join([s, '0', father, mother, '0', '-9']) + "\n")
+        else:
+            raise Exception('Sample not found in dict.')
     fh.close()
 
 parser = argparse.ArgumentParser(description='Tool to filter a hdf5 file')
