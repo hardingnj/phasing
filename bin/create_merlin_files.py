@@ -31,7 +31,7 @@ def get_ind_genotype(path, sample_index):
 
 parser = argparse.ArgumentParser(description='Tool to filter a hdf5 file')
 parser.add_argument('vcf', help='input sample pedfile')
-parser.add_argument('fam', help='File containing all samples')
+parser.add_argument('sample', help='File containing all samples')
 parser.add_argument('output', help='output directory')
 
 parser.add_argument('--recomb', '-r', action='store', dest='recomb',
@@ -52,9 +52,10 @@ map_file = os.path.join(args.output, stem + '.map')
 ped_file = os.path.join(args.output, stem + '.ped')
 dat_file = os.path.join(args.output, stem + '.dat')
 
-tbl_names = ('Family_ID', 'Individual_ID', 'Paternal_ID',
+tbl_names = ('Family_ID', 'Individual_ID', 'missing', 'Paternal_ID',
              'Maternal_ID', 'Sex', 'Phenotype')
-fam_tbl = pd.read_csv(args.fam, sep=" ", header=None, names=tbl_names)
+fam_tbl = pd.read_csv(args.sample, sep=" ", header=None,
+                      names=tbl_names, skiprows=2)
 fam_tbl['Family_ID'] = [re.sub('_\d+', '', x) for x in fam_tbl['Family_ID']]
 
 vcf_fh = gzip.open(args.vcf, 'rb')
