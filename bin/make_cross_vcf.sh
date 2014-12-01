@@ -43,3 +43,5 @@ touch ${WORKD}/${FSTEM}_me.vcf.gz.ok
 # sample file
 $PYENV $PYBIN/split_vcf.py ${WORKD}/${FSTEM}_me.vcf.gz ${WORKD}/${FSTEM} \
   -P $PEDTB -B $VKEEP
+
+echo "Done"
