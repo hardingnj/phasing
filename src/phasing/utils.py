@@ -465,3 +465,21 @@ def get_consecutive_true(condition):
     return np.diff(np.where(np.concatenate(([condition[0]],
                                             condition[:-1] != condition[1:],
                                             [True])))[0])[::2].max()
+
+
+def make_sample_file(sample_list, ped_dict, family_id, filepath):
+
+    father, mother = ped_dict['parent']
+    fh = open(filepath, 'w')
+    fh.write('ID_1 ID_2 missing father mother sex plink_pheno' + "\n")
+    fh.write('0 0 0 D D D B' + "\n")
+    for i, s in enumerate(sample_list):
+        if s in ped_dict['parent']:
+            fh.write(" ".join([family_id + '_' + str(i+1), s, '0',
+                               '0', '0', '0', '-9']) + "\n")
+        elif s in ped_dict['progeny']:
+            fh.write(" ".join([family_id + '_' + str(i+1), s, '0',
+                               father, mother, '0', '-9']) + "\n")
+        else:
+            raise Exception('Sample not found in dict.')
+    fh.close()
