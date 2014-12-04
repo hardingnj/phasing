@@ -6,8 +6,11 @@ import numpy as np
 
 
 def get_fam_info(sampleid, ped_tbl):
-    cross, role = ped_tbl.loc[sampleid]
-    if role == 'parent':
+    try:
+        cross, role = ped_tbl.loc[sampleid]
+    except KeyError:
+        cross, role = 'none', 'none'
+    if role != 'progeny':
         return cross, '0', '0'
     else:
         father, mother = ped_tbl[
