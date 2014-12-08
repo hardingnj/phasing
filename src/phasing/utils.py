@@ -465,3 +465,17 @@ def get_consecutive_true(condition):
     return np.diff(np.where(np.concatenate(([condition[0]],
                                             condition[:-1] != condition[1:],
                                             [True])))[0])[::2].max()
+
+
+def mask_2d(a, c, threshold=0, value=False):
+    mask = np.array(c < threshold)
+    cp_a = a.copy()
+    cp_a[mask] = value
+    return cp_a, mask
+
+
+def mask_3d(a, c, threshold=0, value=(-1, -1)):
+    mask = np.array(c < threshold)
+    cp_a = a.copy()
+    cp_a[mask] = value
+    return cp_a, mask
