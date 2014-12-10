@@ -208,17 +208,32 @@ def calc_regions(size, nbins=20, overlap=0):
     return regions
 
 
-def calculate_switch_error(inheritance):
+def determine_switches(a):
+    return np.diff(np.where(np.concatenate(([a[0]], a[:-1] != a[1:],
+                                            [True])))[0])
+
+
+def calculate_switch_error(inheritance, ignore_size=0):
 
     # only 1s and 2s are relevant
     exclude = np.any(inheritance < 3, axis=1)
     inheritance = np.compress(exclude, inheritance, axis=0)
 
-    switch_sums = map(lambda (x, y): np.array(x != y, dtype='int8'),
-                      izip(inheritance[1:], inheritance[0:-1]))
-    switch_sums = np.array(switch_sums)
+    switches = [determine_switches(col) for col in inheritance.T]
 
-    return switch_sums.mean(axis=0), switch_sums.sum(axis=0), switch_sums.shape
+    switch_e = list()
+    ignored = list()
+    for s in switches:
+        count = 0
+        for x, y in zip(s[1:], s[:-1]):
+            if x > ignore_size and y > ignore_size:
+                count += 1
+        ignored.append(np.sum(s <= ignore_size))
+        switch_e.append(count)
+    switch_e = np.array(switch_e)
+    ignored = np.array(ignored)
+
+    return switch_e, ignored, inheritance.shape
 
 
 def plot_ped_haplotype_inheritance(parent_genotypes,
