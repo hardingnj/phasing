@@ -20,8 +20,6 @@ def get_fam_info(sampleid, ped_tbl):
 
 def write_merlin(output_stem, genotypes, positions, samples, ped_tbl,
                  cm_per_base=2.75e-06, chrom='3L'):
-    if not path.isdir(output_stem):
-        mkdir(output_stem)
 
     # ped file is horizontal... fam/id/mother father 0 0
     genotypes += 1
