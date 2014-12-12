@@ -476,10 +476,13 @@ def get_error_likelihood(parental_genotypes, progeny_genotypes, pe=0.001):
     return np.array(res)
 
 
-def get_consecutive_true(condition):
-    return np.diff(np.where(np.concatenate(([condition[0]],
-                                            condition[:-1] != condition[1:],
-                                            [True])))[0])[::2].max()
+def get_consecutive_true(a):
+    if a.sum() == 0:
+        return 0
+    else:
+        return np.diff(np.where(np.concatenate(([a[0]],
+                                                a[:-1] != a[1:],
+                                                [True])))[0])[::2].max()
 
 
 def mask_2d(a, c, threshold=0, value=False):
