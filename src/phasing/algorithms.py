@@ -145,9 +145,16 @@ class ShapeIt():
 
             script_name = os.path.join(self.dirs['script'], str(i) +
                                        '_shapeIt.sh')
+            exit_check = "\n".join(["{",
+                                    "if [ -f {0}.ok ]; then",
+                                    "\techo \"Already completed ok!\"",
+                                    "\texit 0",
+                                    "fi",
+                                    "}"])
             utils.create_sh_script(
                 filename=script_name,
-                commands=['cd ' + region_dir, cmd_shape_it],
+                commands=['cd ' + region_dir, exit_check.format(haps),
+                          cmd_shape_it],
                 outfile=haps)
 
             # name, script, mem, dependency
