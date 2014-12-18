@@ -14,6 +14,7 @@ comment = re.compile('^#')
 
 stem = os.path.split(args.input)[-1].split('.')[0]
 output_fn = "{0}_{1}_{2}.vcf.gz".format(stem, args.start, args.end)
+print output_fn
 
 input_fh = gzip.open(args.input, 'r')
 output_fh = gzip.open(output_fn, 'w-')

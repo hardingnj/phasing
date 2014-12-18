@@ -21,9 +21,10 @@ WORKD=${OUTDI}/gq${MINGQ}
 FSTEM=3L_ag-cross.gq${MINGQ}
 
 # This section makes the h5 file
-mkdir $WORKD
+#mkdir $WORKD
 $PYENV $PYBIN/filter_hdf5.py $RAWH5 $WORKD/$FSTEM -O -Q ${MINGQ} -P $PEDTB
 touch ${WORKD}/${FSTEM}.h5.ok
+exit 0
 
 $PYENV ${PYBIN}/hdf5_2_vcf.py ${WORKD}/${FSTEM}.h5 ${WORKD}/${FSTEM} -P $PEDTB
 bgzip ${WORKD}/${FSTEM}.vcf
