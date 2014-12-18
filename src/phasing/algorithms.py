@@ -225,8 +225,7 @@ class ShapeIt():
                           qsub_parameters + dm_args, self.duohmm_script)
 
     def setup_single_job(self, parameters, vcf_file, duohmm, sample_file=None):
-        # basically, set up a shapeIT job for each region. This may be several
-        # lines long.
+        # basically, set up a shapeIT job running the whole file as one.
         parameters = [str(x) for x in parameters] + ['--input-vcf', vcf_file]
         self.checksum_file = vcf_file
 
