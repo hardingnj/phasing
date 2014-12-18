@@ -59,7 +59,6 @@ assert len(h5_handle.keys()) <= 1
 for k in h5_handle.keys():
 
     samples = tuple(h5_handle[k]['samples'][:].tolist())
-    ok_samples = np.ones(len(samples), dtype='bool')
     missing_rates = np.zeros(len(samples))
 
     for i, s in enumerate(samples):
