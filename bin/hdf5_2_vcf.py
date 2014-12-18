@@ -64,7 +64,6 @@ for k in h5_handle.keys():
     for i, s in enumerate(samples):
         missing_genotypes = anhima.gt.is_missing(
             h5_handle[k]['calldata']['genotype'][:, i].reshape((-1, 1, 2))).squeeze()
-        print missing_genotypes.shape
         consecutive_miss = phasing.utils.get_consecutive_true(missing_genotypes)
         missing_rate = consecutive_miss/float(missing_genotypes.size)
         print "Missing rate of", s, ':', "{:.8f}".format(missing_rate), \
