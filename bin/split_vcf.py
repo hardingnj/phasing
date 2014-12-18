@@ -1,33 +1,36 @@
 import argparse
-import phasing as ph
+import gzip
+import re
 import os
 
+parser = argparse.ArgumentParser(description='Tool to filter a vcf file')
 
-parser = argparse.ArgumentParser(description='Tool to filter a hdf5 file')
+parser.add_argument('input', help='input compressed vcf file')
+parser.add_argument('--start', action='store', dest='start', type=int)
+parser.add_argument('--end', action='store', dest='end', type=int)
 
-parser.add_argument('input', help='input hdf5 file')
-parser.add_argument('output', help='output file stem')
-
-parser.add_argument('-P', '--pedigree', dest='pedigree', action='store',
-                    help='Pedigree table for calculation of mendel errors')
-parser.add_argument('-B', '--binary', dest='binary', action='store',
-                    default='vcfkeepsamples',
-                    help='Path to vcfkeepsamples executable')
 args = parser.parse_args()
+comment = re.compile('^#')
 
-pedigree, _ = ph.utils.read_pedigree_table(args.pedigree)
+stem = os.path.split(args.input)[-1].split('.')[0]
+output_fn = "{0}_{1}_{2}.vcf.gz".format(stem, args.start, args.end)
 
-command_string = r"| perl -ne 'if ($_ =~ m/^#/ || $_ =~ m/0\/0|0\/1|1\/1/) " \
-                 r"{ print $_;}' | bgzip -c >"
+input_fh = gzip.open(args.input, 'r')
+output_fh = gzip.open(output_fn, 'w-')
 
-for k in pedigree.keys():
-    samples = " ".join(pedigree[k]['parent'] + pedigree[k]['progeny'])
-    print "Splitting " + k + ": " + samples
-    cmd = " ".join([args.binary, args.input, samples, command_string,
-                    args.output + '_' + k + '.vcf.gz'])
-    os.system(cmd)
+print args.start, args.end
+for l in input_fh:
+    if comment.match(l):
+        output_fh.write(l)
+    else:
+        arr = l[:20].split("\t")
+        pos = int(arr[1])
+        if pos < args.start:
+            continue
+        elif pos > args.end:
+            break
+        else:
+            output_fh.write(l)
 
-    ph.utils.make_sample_file(sample_list=samples.split(' '),
-                              ped_dict=pedigree[k],
-                              family_id=k,
-                              filepath=args.output + '_' + k + '.sample')
+output_fh.close()
+input_fh.close()
