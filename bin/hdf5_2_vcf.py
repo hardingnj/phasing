@@ -10,6 +10,8 @@ import anhima
 import numpy as np
 import phasing
 
+chunk_size = 200000
+
 parser = argparse.ArgumentParser(
     description='Tool to produce a vcf file from an hdf5 file')
 
@@ -56,16 +58,21 @@ reqd = ('#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT')
 assert len(h5_handle.keys()) <= 1
 for k in h5_handle.keys():
 
-    genotypes = anhima.gt.as_012(h5_handle[k]['calldata']['genotype'][:])
     samples = tuple(h5_handle[k]['samples'][:].tolist())
+    ok_samples = np.ones(len(samples), dtype='bool')
+    missing_rates = np.zeros(len(samples))
 
-    missing_genotypes = np.array(genotypes == -1)
+    for i, s in enumerate(samples):
+        missing_genotypes = anhima.gt.is_missing(
+            h5_handle[k]['calldata']['genotype'][:, i].reshape((-1, 1, 2))).squeeze()
+        print missing_genotypes.shape
+        consecutive_miss = phasing.utils.get_consecutive_true(missing_genotypes)
+        missing_rate = consecutive_miss/float(missing_genotypes.size)
+        print "Missing rate of", s, ':', "{:.8f}".format(missing_rate), \
+            "({0}/{1})".format(i+1, len(samples))
+        missing_rates[i] = missing_rate
 
-    consecutive_miss = np.apply_along_axis(phasing.utils.get_consecutive_true,
-                                           0, missing_genotypes)
-    missing_rate = consecutive_miss/float(genotypes.shape[0])
-    print "Max consecutive missing sites:", consecutive_miss.max()
-    print "Rate max:", missing_rate.max()
+    print "Rate max:", missing_rates.max()
     ok_samples = missing_rate < args.missingcutoff
 
     if np.any(~ok_samples):
@@ -91,31 +98,41 @@ for k in h5_handle.keys():
 
     f.write("\t".join(reqd + samples) + "\n")
 
-    positions = h5_handle[k]['variants']['POS'][:]
-    reference = h5_handle[k]['variants']['REF'][:]
-    alternate = h5_handle[k]['variants']['ALT'][:]
+    number_variants = h5_handle[k]['variants']['POS'][:].size
+    chunks = np.arange(1, number_variants + 1, chunk_size)
 
-    for pos, ref, alt, gt in izip(positions, reference, alternate, genotypes):
-        filterstring = 'PASS'
+    for start, stop in zip(chunks[:-1], chunks[1:]):
+        sl = slice(start, stop)
+        positions = h5_handle[k]['variants']['POS'][sl]
+        reference = h5_handle[k]['variants']['REF'][sl]
+        alternate = h5_handle[k]['variants']['ALT'][sl]
+        genotypes = anhima.gt.as_012(h5_handle[k]['calldata']['genotype'][sl])
+        genotypes = genotypes[:, ok_samples]
 
-        # This line should filter out variants where ALL genotypes are missing
-        if not args.keepmissing and np.all(gt == -1):
-            continue
+        print genotypes.shape
+        multiple_alts = alternate.ndim > 1
 
-        # alt may be an np array, with several entries.
-        if isinstance(alt, np.ndarray):
-            alt = ",".join(x for x in alt if x != '')
+        for pos, ref, alt, gt in izip(positions, reference,
+                                      alternate, genotypes):
+            filterstring = 'PASS'
+            # This line filters out variants where ALL genotypes are missing
+            if not args.keepmissing and np.all(gt == -1):
+                continue
 
-        try:
-            line = "\t".join([k, str(pos), '.', ref, alt, '0', '.', '.',
-                              'GT'] + [lookup[s] for s in gt])
-            f.write(line + "\n")
+            # alt may be an np array, with several entries.
+            if multiple_alts:
+                alt = ",".join(x for x in alt if x != '')
 
-        except TypeError:
-            print pos
-            print ref
-            print alt
-            print gt
-            exit(1)
+            try:
+                line = "\t".join([k, str(pos), '.', ref, alt, '0', '.', '.',
+                                  'GT'] + [lookup[s] for s in gt])
+                f.write(line + "\n")
+
+            except TypeError:
+                print pos
+                print ref
+                print alt
+                print gt
+                raise TypeError("Some data wasn't of the correct type.")
 
 f.close()
