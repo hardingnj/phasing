@@ -63,7 +63,8 @@ for k in h5_handle.keys():
 
     for i, s in enumerate(samples):
         missing_genotypes = anhima.gt.is_missing(
-            h5_handle[k]['calldata']['genotype'][:, i].reshape((-1, 1, 2))).squeeze()
+            h5_handle[k]['calldata']['genotype'][:, i].reshape(
+                (-1, 1, 2))).squeeze()
         consecutive_miss = phasing.utils.get_consecutive_true(missing_genotypes)
         missing_rate = consecutive_miss/float(missing_genotypes.size)
         print "Missing rate of", s, ':', "{:.8f}".format(missing_rate), \
@@ -84,7 +85,6 @@ for k in h5_handle.keys():
             print sa + ": " + str(rt)
 
         samples = tuple(np.compress(ok_samples, samples).tolist())
-        genotypes = genotypes[:, ok_samples]
     else:
         print "All samples meet the missingness run threshold ({0})" \
             .format(str(args.missingcutoff))
@@ -105,8 +105,7 @@ for k in h5_handle.keys():
         reference = h5_handle[k]['variants']['REF'][sl]
         alternate = h5_handle[k]['variants']['ALT'][sl]
         genotypes = anhima.gt.as_012(h5_handle[k]['calldata']['genotype'][sl])
-        genotypes = genotypes[:, ok_samples]
-
+        genotypes = np.compress(ok_samples, genotypes, axis=1)
         print genotypes.shape
         multiple_alts = alternate.ndim > 1
 

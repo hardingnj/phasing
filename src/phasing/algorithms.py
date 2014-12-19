@@ -203,7 +203,7 @@ class ShapeIt():
 
         self.settings['params'] = parse_command(parameters)
 
-    def run_region(self, si_args, li_args, dm_args):
+    def run_region(self, si_args, li_args, dm_args=None):
 
         qsub_parameters = ['-S', '/bin/bash',
                            '-j', 'y',
