@@ -66,13 +66,13 @@ for k in h5_handle.keys():
             h5_handle[k]['calldata']['genotype'][:, i].reshape(
                 (-1, 1, 2))).squeeze()
         consecutive_miss = phasing.utils.get_consecutive_true(missing_genotypes)
-        missing_rate = consecutive_miss/float(missing_genotypes.size)
-        print "Missing rate of", s, ':', "{:.8f}".format(missing_rate), \
+        miss_rate_i = consecutive_miss/float(missing_genotypes.size)
+        print "Missing rate of", s, ':', "{:.8f}".format(miss_rate_i), \
             "({0}/{1})".format(i+1, len(samples))
-        missing_rates[i] = missing_rate
+        missing_rates[i] = miss_rate_i
 
     print "Rate max:", missing_rates.max()
-    ok_samples = missing_rate < args.missingcutoff
+    ok_samples = missing_rates < args.missingcutoff
 
     if np.any(~ok_samples):
         msg = "The following {0} samples are excluded as they have a " \
@@ -81,7 +81,7 @@ for k in h5_handle.keys():
         print msg
 
         for sa, rt in zip(np.compress(~ok_samples, samples).tolist(),
-                          np.compress(~ok_samples, missing_rate).tolist()):
+                          np.compress(~ok_samples, miss_rate_i).tolist()):
             print sa + ": " + str(rt)
 
         samples = tuple(np.compress(ok_samples, samples).tolist())
