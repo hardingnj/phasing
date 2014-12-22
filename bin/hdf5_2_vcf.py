@@ -81,7 +81,7 @@ for k in h5_handle.keys():
         print msg
 
         for sa, rt in zip(np.compress(~ok_samples, samples).tolist(),
-                          np.compress(~ok_samples, miss_rate_i).tolist()):
+                          np.compress(~ok_samples, missing_rates).tolist()):
             print sa + ": " + str(rt)
 
         samples = tuple(np.compress(ok_samples, samples).tolist())
