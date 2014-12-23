@@ -149,10 +149,11 @@ class ShapeIt():
                 pir_string = " ".join(['--input-pir', pir_f])
                 print pir_string
 
-            cmd_shape_it = " ".join([self.executable] + parameters +
-                                    ['--input-from', start, '--input-to',
-                                     stop, pir_string,
-                                     '--output-max', haps, samples])
+            files = ['--input-from', start, '--input-to', stop, pir_string,
+                     '--output-max', haps, samples]
+            print files
+
+            cmd_shape_it = " ".join([self.executable] + parameters + files)
 
             script_name = os.path.join(self.dirs['script'], str(i) +
                                        '_shapeIt.sh')
