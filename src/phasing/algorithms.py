@@ -131,7 +131,7 @@ class ShapeIt():
         self.checksum_file = vcf_file
 
         if pirs is not None:
-            parameters = parameters.insert(0, '-assemble')
+            parameters.insert(0, '-assemble')
 
         hap_files = list()
         for i, region in enumerate(regions):
