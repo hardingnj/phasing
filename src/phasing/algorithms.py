@@ -130,6 +130,9 @@ class ShapeIt():
         parameters = [str(x) for x in parameters] + ['--input-vcf', vcf_file]
         self.checksum_file = vcf_file
 
+        if pirs is not None:
+            parameters = parameters.insert(0, '-assemble')
+
         hap_files = list()
         for i, region in enumerate(regions):
             start, stop = [str(x) for x in region]
@@ -139,9 +142,16 @@ class ShapeIt():
             samples = os.path.join(self.outdir, region_dir, str(i) + '_' +
                                    self.run_id + '.sample.gz')
 
+            pir_string = ''
+            if pirs is not None:
+                pir_f = pirs.format(start, stop)
+                assert os.path.isfile(pir_f)
+                pir_string = " ".join(['--input-pir', pir_f])
+
             cmd_shape_it = " ".join([self.executable] + parameters +
                                     ['--input-from', start, '--input-to',
-                                     stop, '--output-max', haps, samples])
+                                     stop, pir_string, '--output-max', haps,
+                                     samples])
 
             script_name = os.path.join(self.dirs['script'], str(i) +
                                        '_shapeIt.sh')
