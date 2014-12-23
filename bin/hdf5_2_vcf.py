@@ -34,10 +34,11 @@ with h5py.File(args.input, mode='r') as h5_handle:
         lookup = {-1: './.', 0: '0/0', 1: '0/1', 2: '1/1'}
 
         f.write(r'##fileformat=VCFv4.1' + "\n")
-        f.write(r'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' + "\n")
-        f.write(r'##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in '
-                r'genotypes, for each ALT allele, in the same order as listed">' +
-                "\n")
+        f.write(r'##FORMAT=<ID=GT,Number=1,Type=String,'
+                r'Description="Genotype">' + "\n")
+        f.write(r'##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count'
+                r'in genotypes, for each ALT allele, in the same order as'
+                r'listed">' + "\n")
 
         f.write(r'##contig=<ID=2L,length=49364325>' + "\n")
         f.write(r'##contig=<ID=2R,length=61545105>' + "\n")
@@ -49,11 +50,12 @@ with h5py.File(args.input, mode='r') as h5_handle:
         f.write(r'##reference=file:///data/anopheles/ag1000g/data/genome/AgamP3'
                 r'/Anopheles-gambiae-PEST_CHROMOSOMES_AgamP3.fa' + "\n")
 
-        reqd = ('#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT')
+        reqd = ('#CHROM', 'POS', 'ID', 'REF', 'ALT',
+                'QUAL', 'FILTER', 'INFO', 'FORMAT')
 
         # rememeber to act on all 1st level keys!
-        # does not support multiple chromosomes currently! Actually should probably add
-        # to filter script...
+        # does not support multiple chromosomes currently!
+        # Actually should probably add to filter script...
         assert len(h5_handle.keys()) <= 1
         for k in h5_handle.keys():
 
@@ -64,7 +66,8 @@ with h5py.File(args.input, mode='r') as h5_handle:
                 missing_genotypes = anhima.gt.is_missing(
                     h5_handle[k]['calldata']['genotype'][:, i].reshape(
                         (-1, 1, 2))).squeeze()
-                consecutive_miss = phasing.utils.get_consecutive_true(missing_genotypes)
+                consecutive_miss = phasing.utils.get_consecutive_true(
+                    missing_genotypes)
                 miss_rate_i = consecutive_miss/float(missing_genotypes.size)
                 print "Missing rate of", s, ':', "{:.8f}".format(miss_rate_i), \
                     "({0}/{1})".format(i+1, len(samples))
@@ -79,8 +82,9 @@ with h5py.File(args.input, mode='r') as h5_handle:
                     .format(str(np.sum(~ok_samples)), str(args.missingcutoff))
                 print msg
 
-                for sa, rt in zip(np.compress(~ok_samples, samples).tolist(),
-                                  np.compress(~ok_samples, missing_rates).tolist()):
+                for sa, rt in zip(
+                        np.compress(~ok_samples, samples).tolist(),
+                        np.compress(~ok_samples, missing_rates).tolist()):
                     print sa + ": " + str(rt)
 
                 samples = tuple(np.compress(ok_samples, samples).tolist())
@@ -103,14 +107,15 @@ with h5py.File(args.input, mode='r') as h5_handle:
                 positions = h5_handle[k]['variants']['POS'][sl]
                 reference = h5_handle[k]['variants']['REF'][sl]
                 alternate = h5_handle[k]['variants']['ALT'][sl]
-                genotypes = anhima.gt.as_012(h5_handle[k]['calldata']['genotype'][sl])
+                genotypes = anhima.gt.as_012(
+                    h5_handle[k]['calldata']['genotype'][sl])
                 genotypes = np.compress(ok_samples, genotypes, axis=1)
                 multiple_alts = alternate.ndim > 1
 
                 for pos, ref, alt, gt in izip(positions, reference,
                                               alternate, genotypes):
                     filterstring = 'PASS'
-                    # This line filters out variants where ALL genotypes are missing
+                    # This line filters variants where ALL genotypes are missing
                     if not args.keepmissing and np.all(gt == -1):
                         continue
 
@@ -119,8 +124,8 @@ with h5py.File(args.input, mode='r') as h5_handle:
                         alt = ",".join(x for x in alt if x != '')
 
                     try:
-                        line = "\t".join([k, str(pos), '.', ref, alt, '0', '.', '.',
-                                          'GT'] + [lookup[s] for s in gt])
+                        line = "\t".join([k, str(pos), '.', ref, alt, '0', '.',
+                                          '.', 'GT'] + [lookup[s] for s in gt])
                         f.write(line + "\n")
 
                     except TypeError:
