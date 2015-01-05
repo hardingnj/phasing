@@ -1,15 +1,23 @@
-# set some parameters. Probably will set these a config file.
-gq_threshold: 30
+# For determining truth variants to phase
+gq_parent: 40
+gq_progeny: 30
+thinning: 75
+min_called: 0.8
+
+# directories and files
 pyenv: /home/njh/pyenv/science/bin/python
 bin_dir: /home/njh/git/phasing/bin
 ped_file: /home/njh/git/ag-crosses/meta/tbl_sample_ped.txt
 outdir: /data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/callsets/autosome
-# define raw hdf5 files.
+
+# raw hdf5 files.
 eval_h5: /data/anopheles/ag1000g/data/1000g_09_13/release/AR2/ag1000g.phase1.AR2.3L.PASS.h5
 truth_h5: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/h5/3L_ag-cross.h5
-eval_prep_mem: h_vmem=32G
-truth_prep_mem: h_vmem=16G
+
+# general
 nbins: 25
+
+# For PIR jobs
 cross_samples: /home/njh/git/ag-crosses/meta/all_samples.txt
 cross_bam_dir: /data/anopheles/ag-crosses/data/sanger_mirror/nfs/team112_internal/production_files/Ag/community/1_0/AGPED1/{SAMPLE}/{SAMPLE}.bam
 ag1000_samples: /home/njh/git/ag1000g/meta/phase1.AR1.samples
