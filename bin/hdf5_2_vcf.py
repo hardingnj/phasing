@@ -1,3 +1,5 @@
+#! /usr/bin/python
+
 __author__ = 'Nicholas Harding'
 
 # This script takes an hdf5 file, reads the object in and produces a minimal

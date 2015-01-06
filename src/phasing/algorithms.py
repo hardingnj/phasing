@@ -3,14 +3,13 @@ __author__ = 'Nicholas Harding'
 import re
 import os
 import tool
-import pandas as pd
-import numpy as np
 import sh
 import uuid
 import tempfile
 import utils
 import subprocess
 import yaml
+import sys
 # collection of methods for submission of shapeit jobs with various defaults
 
 # behaviour:
@@ -101,6 +100,7 @@ class ShapeIt():
         self.si_job_list = list()
         self.ligate_script = None
         self.duohmm_script = None
+        self.h5_script = None
         self.si_script = None
         self.dirs = {d: os.path.join(self.outdir, d) for d in ('log', 'script')}
         [sh.mkdir(d, '-p') for d in self.dirs.values() if not os.path.isdir(d)]
@@ -109,6 +109,7 @@ class ShapeIt():
                                          '_final.haps.gz')
         self.phased_f = os.path.join(self.outdir, self.run_id +
                                      '_final.samples.gz')
+        self.h5out = os.path.join(self.outdir, self.run_id + '.h5')
 
         self.duohmm_haps = None
         self.duohmm_sample = None
@@ -186,6 +187,7 @@ class ShapeIt():
                                 'rm ' + tmp.name],
                                self.haplotypes_f)
 
+        # set up duohmm if specified
         if duohmm:
             tmp_duo = tempfile.NamedTemporaryFile(delete=False)
             self.duohmm_script = os.path.join(self.dirs['script'],
@@ -207,9 +209,23 @@ class ShapeIt():
                                                        tmp_duo.name+'.sample'),
                                    'cd ' + self.outdir,
                                    " ".join(cmd_duohmm),
-                                   "gzip {0} {1}".format(self.duohmm_haps,
-                                                         self.duohmm_sample)],
+                                   "gzip {0} {1} {2} {3}".format(
+                                       self.duohmm_haps, self.duohmm_sample,
+                                       duohmm_root + '.GE.txt',
+                                       duohmm_root + '.RC.txt')],
                                    self.duohmm_haps + '.gz')
+
+        # finally run shapeIt to hdf5 script
+        self.h5_script = os.path.join(self.dirs['script'], 'convert_h5.sh')
+        h5_root = "{0} {1}/bin/shapeIt2hdf5.py {2} {3} --chr {4} --out {5}"
+        if duohmm:
+            h5_cmd = h5_root.format(sys.executable, __path__, self.duohmm_haps,
+                                    self.duohmm_sample, '3L', self.h5out)
+        else:
+            h5_cmd = h5_root.format(sys.executable, __path__, self.haplotypes_f,
+                                    self.phased_f, '3L', self.h5out)
+
+        utils.create_sh_script(self.h5_script, [h5_cmd], self.h5out)
 
         self.settings['params'] = parse_command(parameters)
 
@@ -233,6 +249,13 @@ class ShapeIt():
             print sh.qsub('-hold_jid', 'ligate' + self.run_id,
                           '-N', 'duohmm' + self.run_id,
                           qsub_parameters + dm_args, self.duohmm_script)
+            print sh.qsub('-hold_jid', 'duohmm' + self.run_id,
+                          '-N', 'si2hdf5' + self.run_id, '-l', 'h_vmem=4G',
+                          qsub_parameters, self.h5_script)
+        else:
+            print sh.qsub('-hold_jid', 'ligate' + self.run_id,
+                          '-N', 'si2hdf5' + self.run_id, '-l', 'h_vmem=4G',
+                          qsub_parameters, self.h5_script)
 
     def setup_single_job(self, parameters, vcf_file, duohmm, sample_file=None):
         # basically, set up a shapeIT job running the whole file as one.

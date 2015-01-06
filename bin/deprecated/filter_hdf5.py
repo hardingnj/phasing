@@ -1,3 +1,7 @@
+#! /usr/bin/python
+
+__author__ = 'Nicholas Harding'
+
 import argparse
 import h5py
 import phasing as ph
