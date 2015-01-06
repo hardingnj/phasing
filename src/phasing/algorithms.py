@@ -220,7 +220,8 @@ class ShapeIt():
         h5_root = "{0} {1}/bin/shapeIt2hdf5.py {2} {3} --chr {4} --out {5}"
         if duohmm:
             h5_cmd = h5_root.format(sys.executable, sys.exec_prefix,
-                                    self.duohmm_haps, self.duohmm_sample,
+                                    self.duohmm_haps + '.gz',
+                                    self.duohmm_sample + '.gz',
                                     '3L', self.h5out)
         else:
             h5_cmd = h5_root.format(sys.executable, sys.exec_prefix,
