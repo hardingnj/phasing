@@ -280,7 +280,7 @@ def plot_ped_haplotype_inheritance(parent_genotypes,
                                                        'green', 'orange',
                                                        'black', 'yellow',
                                                        'white'),
-                                   spacer=0.02,
+                                   spacer=0.05,
                                    panel_height_ratios=(3.0, 3.0, 1.0, 1.0),
                                    progeny_labels=None):
     """
@@ -348,7 +348,7 @@ def plot_ped_haplotype_inheritance(parent_genotypes,
     anhima.loc.plot_variant_locator(positions,
                                     step=1000,
                                     ax=ax,
-                                    flip=True)
+                                    flip=False)
 
     ax = fig.add_axes(axes.pop())
     anhima.gt.plot_discrete_calldata(paternal_inheritance,
@@ -363,6 +363,85 @@ def plot_ped_haplotype_inheritance(parent_genotypes,
                                      labels=progeny_labels,
                                      states=range(1, 8),
                                      ax=ax)
+    if filename is not None:
+        plt.savefig(filename, bbox_inches='tight')
+    return ax
+
+
+def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
+                                show_all=False, filename=None, downsample=10000,
+                                inheritance_colors=('red', 'blue', 'green',
+                                                    'orange', 'black', 'yellow',
+                                                    'white'),
+                                spacer=0.05,
+                                phr=(4.0, 1.0, 1.0),
+                                progeny_labels=None):
+    """
+    Creates a plot for each pedigree in the pedigree dict
+    :param parent_genotypes: an n x 2 array or a n x 1x 2 array that is squeez
+    :param gamete_haplotypes: an n x S x 2 array
+    :param inheritance_colors: colour scheme
+    :param spacer: gap between panels
+    :param phr: relative size of each panel
+    :return:
+    """
+
+    panel_heights = np.array(phr)/np.sum(phr) - spacer
+
+    selection = np.ones(parent_genotypes.shape[0], dtype='bool')
+    if not show_all:
+        selection = anhima.gt.is_het(parent_genotypes)
+
+    # downsample
+    if downsample is not None:
+        where = np.where(selection)[0]
+        idx = np.random.choice(where, downsample, replace=False)
+        toplot = np.zeros(selection.shape, dtype='bool')
+        toplot[idx] = True
+        print 'Downsampling from {0} to {1} for plotting'.format(str(
+            selection.sum()), str(downsample))
+    else:
+        toplot = selection
+
+    parent = np.compress(toplot, parent_genotypes, axis=0)
+
+    # NB: critical assumption of genotypes here
+    haplotypes = np.compress(toplot, gamete_haplotypes, axis=0)
+    positions = np.compress(selection, positions, axis=0)
+
+    # Again assumption of correct location of parents in dict
+    inheritance = anhima.ped.diploid_inheritance(parent, haplotypes)
+
+    axes = [(0, n*spacer + np.sum(panel_heights[:n]),
+             1, panel_heights[n]) for n in range(np.size(panel_heights))]
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    if progeny_labels is None:
+        progeny_labels = [''] * gamete_haplotypes.shape[1]
+    else:
+        progeny_labels.reverse()
+
+    # (left, bottom, width, height)
+    ax = fig.add_axes(axes.pop())
+    window = (positions[-1] - positions[0])/100.0
+    anhima.loc.plot_windowed_variant_density(positions,
+                                             window_size=window,
+                                             ax=ax)
+
+    ax = fig.add_axes(axes.pop())
+    anhima.loc.plot_variant_locator(positions,
+                                    step=toplot.sum()/100,
+                                    ax=ax,
+                                    flip=False)
+
+    ax = fig.add_axes(axes.pop())
+    anhima.gt.plot_discrete_calldata(inheritance,
+                                     colors=inheritance_colors,
+                                     labels=progeny_labels,
+                                     states=range(1, 8),
+                                     ax=ax)
+
     if filename is not None:
         plt.savefig(filename, bbox_inches='tight')
     return ax
