@@ -219,11 +219,13 @@ class ShapeIt():
         self.h5_script = os.path.join(self.dirs['script'], 'convert_h5.sh')
         h5_root = "{0} {1}/bin/shapeIt2hdf5.py {2} {3} --chr {4} --out {5}"
         if duohmm:
-            h5_cmd = h5_root.format(sys.executable, __path__, self.duohmm_haps,
-                                    self.duohmm_sample, '3L', self.h5out)
+            h5_cmd = h5_root.format(sys.executable, sys.exec_prefix,
+                                    self.duohmm_haps, self.duohmm_sample,
+                                    '3L', self.h5out)
         else:
-            h5_cmd = h5_root.format(sys.executable, __path__, self.haplotypes_f,
-                                    self.phased_f, '3L', self.h5out)
+            h5_cmd = h5_root.format(sys.executable, sys.exec_prefix,
+                                    self.haplotypes_f, self.phased_f,
+                                    '3L', self.h5out)
 
         utils.create_sh_script(self.h5_script, [h5_cmd], self.h5out)
 
