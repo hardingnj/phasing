@@ -374,7 +374,7 @@ def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
                                                     'orange', 'black', 'yellow',
                                                     'white'),
                                 spacer=0.05,
-                                phr=(4.0, 1.0, 1.0),
+                                phr=(1.0, 1.0, 4.0),
                                 progeny_labels=None):
     """
     Creates a plot for each pedigree in the pedigree dict
@@ -422,25 +422,25 @@ def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
     else:
         progeny_labels.reverse()
 
-    # (left, bottom, width, height)
-    ax = fig.add_axes(axes.pop())
-    window = (positions[-1] - positions[0])/100.0
-    anhima.loc.plot_windowed_variant_density(positions,
-                                             window_size=window,
-                                             ax=ax)
-
-    ax = fig.add_axes(axes.pop())
-    anhima.loc.plot_variant_locator(positions,
-                                    step=toplot.sum()/100,
-                                    ax=ax,
-                                    flip=False)
-
     ax = fig.add_axes(axes.pop())
     anhima.gt.plot_discrete_calldata(inheritance,
                                      colors=inheritance_colors,
                                      labels=progeny_labels,
                                      states=range(1, 8),
                                      ax=ax)
+
+    ax = fig.add_axes(axes.pop())
+    anhima.loc.plot_variant_locator(positions,
+                                    step=toplot.sum()/100.0,
+                                    ax=ax,
+                                    flip=False)
+
+    # (left, bottom, width, height)
+    ax = fig.add_axes(axes.pop())
+    window = (positions[-1] - positions[0])/100.0
+    anhima.loc.plot_windowed_variant_density(positions,
+                                             window_size=window,
+                                             ax=ax)
 
     if filename is not None:
         plt.savefig(filename, bbox_inches='tight')
