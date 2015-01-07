@@ -374,6 +374,7 @@ def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
                                                     'orange', 'black', 'yellow',
                                                     'white'),
                                 spacer=0.05,
+                                gridlines=True,
                                 phr=(1.0, 1.0, 4.0),
                                 progeny_labels=None):
     """
@@ -407,6 +408,10 @@ def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
 
     parent = np.compress(toplot, parent_genotypes, axis=0)
 
+    pcolormesh_args = None
+    if gridlines:
+        pcolormesh_args = {'edgecolors': 'black'}
+
     # NB: critical assumption of genotypes here
     haplotypes = np.compress(toplot, gamete_haplotypes, axis=0)
     positions = np.compress(selection, positions, axis=0)
@@ -430,7 +435,7 @@ def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
                                      labels=progeny_labels,
                                      states=range(1, 8),
                                      ax=ax,
-                                     pcolormesh_kwargs={'edgecolors': 'black'})
+                                     pcolormesh_kwargs=pcolormesh_args)
 
     ax = fig.add_axes(axes.pop())
     try:
