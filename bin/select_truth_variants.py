@@ -48,6 +48,10 @@ parser.add_argument('--thinning', '-T', action='store', dest='gap',
                     default=100, type=int,
                     help='enforced gap between genotypes')
 
+parser.add_argument('--baddir', '-B', action='store', dest='baddir',
+                    default=os.getcwd(), type=str,
+                    help='location of bad sites numpy files')
+
 # to do: add option to only filter individual crosses.
 args = parser.parse_args()
 for arg, value in sorted(vars(args).items()):
@@ -120,53 +124,41 @@ keep = hets.any(axis=1) & min_quality.all(axis=1) & ~np.any(hets &
 print '{0}/{1} sites meet all requirements of quality and are ' \
       'segregating'.format(np.sum(keep), np.size(keep))
 
-# check for mendelian errors
-mendelian_errors = list()
-unlikely_genotypes = list()
+# simply add all bad sites
+bad_positions = list()
 for x in pedigree.keys():
     print 'Processing cross:', x
-    genotypes_pa = genotypes[:, pedigree[x]['parent_idx']][keep]
-    genotypes_pr = genotypes[:, pedigree[x]['progeny_idx']][keep]
+    for v in ['li', 'me']:
+        fn = os.path.join(args.baddir,
+                          "_".join([x, '3L', v, 'badsites.npz']))
+        bad_sites = np.load(fn)
+        bad_positions.append(bad_sites['positions'])
 
-    mendelian_errors.append(anhima.ped.diploid_mendelian_error(
-        genotypes_pa, genotypes_pr).any(axis=1))
+bad_positions = np.unique(np.concatenate(bad_positions))
 
-    unlikely_genotypes.append(
-        ph.utils.get_error_likelihood(genotypes_pa, genotypes_pr) < 0)
+# whether pos is in bad pos list
+error, _ = anhima.loc.locate_positions(position, bad_positions)
+print '{0} sites excluded due to possible genotyping errors'.format(
+    error.sum())
 
-mendelian_errors = np.vstack(mendelian_errors).T.any(axis=1)
-unlikely_genotypes = np.vstack(unlikely_genotypes).T.any(axis=1)
+keep = keep & ~error
 
+# Thin the positions
 keep_positions = np.compress(keep, position)
 
-error_sites = np.compress(mendelian_errors | unlikely_genotypes, keep_positions)
+lp = keep_positions[0]    # bit tricky, won't allow passes until gets here
+not_thinned = np.copy(keep)
 
-# grab the positions of mendelian errors and unlikely
-# genotypes to mask the testing data
-np.savez_compressed(os.path.join(output_dir, args.filestem + '_badsites.npz'),
-                    positions=error_sites)
+for i in range(not_thinned.size - 1):
+    if not not_thinned[i+1]:
+        continue
+    elif position[i+1] >= lp + args.gap:
+        lp = position[i+1]
+    else:
+        not_thinned[i+1] = False
 
-print mendelian_errors.sum(), 'mendelian errors observed'
-print unlikely_genotypes.sum(), 'unlikely parental genotypes observed'
-
-# not wild about this code, but seems to work!
-keep[keep] = ~(mendelian_errors | unlikely_genotypes)
-
-# now do some thinning
-keep_positions = np.compress(keep, position)
-
-lp = keep_positions[0]
-not_thinned = np.zeros(keep_positions.shape, dtype='bool')
-
-for i, pos in enumerate(keep_positions[1:]):
-    if pos >= lp + args.gap:
-        not_thinned[i+1] = True
-        lp = pos
-
-# again, looks a little icky
-keep[keep] = not_thinned
-
-print "Thinning has removed {0} sites".format(np.sum(~not_thinned))
+print "Thinning has removed {0} sites".format(np.sum(keep) - not_thinned.sum())
+keep = not_thinned
 print "In total {0}/{1} sites retained".format(np.sum(keep), np.size(keep))
 
 output_h5.create_group('/3L')
