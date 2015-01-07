@@ -431,13 +431,13 @@ def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
 
     ax = fig.add_axes(axes.pop())
     anhima.loc.plot_variant_locator(positions,
-                                    step=toplot.sum()/100.0,
+                                    step=toplot.sum()/100,
                                     ax=ax,
                                     flip=False)
 
     # (left, bottom, width, height)
     ax = fig.add_axes(axes.pop())
-    window = (positions[-1] - positions[0])/100.0
+    window = (positions[-1] - positions[0])/100
     anhima.loc.plot_windowed_variant_density(positions,
                                              window_size=window,
                                              ax=ax)
