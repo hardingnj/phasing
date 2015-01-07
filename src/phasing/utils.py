@@ -430,7 +430,7 @@ def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
                                      labels=progeny_labels,
                                      states=range(1, 8),
                                      ax=ax,
-                                     {'edgecolors': 'black'})
+                                     pcolormesh_kwargs={'edgecolors': 'black'})
 
     ax = fig.add_axes(axes.pop())
     try:
