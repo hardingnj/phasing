@@ -10,6 +10,7 @@ import phasing as ph
 import os
 import argparse
 import time
+
 start_time = time.time()
 
 parser = argparse.ArgumentParser(
@@ -70,6 +71,7 @@ if not os.path.isdir(output_dir):
     os.mkdir(output_dir)
 
 fn = os.path.join(output_dir, args.filestem + '.h5')
+output_h5 = h5py.File(fn, 'w-')
 print "Will output to:", fn
 
 for x in pedigree.keys():
@@ -82,31 +84,41 @@ for x in pedigree.keys():
 genotypes = data['3L']['calldata']['genotype'][:]
 
 # this could be sped up a little bit...
-sites = list()
-none_missing = list()
+hets = list()
+min_quality = list()
+bad_progeny = list()
 
 for x in pedigree.keys():
 
     parent_genotypes = genotypes[:, pedigree[x]['parent_idx']]
     parent_gqs = data['3L']['calldata']['GQ'][:, pedigree[x]['parent_idx']]
 
+    # at least 1 parent must be a het
     heterozygotes = anhima.gt.is_het(parent_genotypes.any(axis=1))
+
+    # both must be called
     present_gts = anhima.gt.is_called(parent_genotypes).all(axis=1)
 
+    # both must be >= gq
     meet_gq = np.all(parent_gqs >= args.parentGQ, axis=1)
 
     progeny_gq = data['3L']['calldata']['GQ'][:, pedigree[x]['progeny_idx']]
-    prog_ok = np.mean(progeny_gq >= args.progenyGQ, axis=1) > 0.8
-    sites.append(meet_gq & heterozygotes & prog_ok)
-    none_missing.append(present_gts)
+    prog_bad = np.mean(progeny_gq >= args.progenyGQ, axis=1) < 0.8
 
-putative_sites = np.array(sites).T.any(axis=1)
-none_missing_a = np.array(none_missing).T.all(axis=1)
+    # append to lists
+    hets.append(heterozygotes)                 # can be true in any 1
+    min_quality.append(meet_gq & present_gts)  # must be true in all
+    bad_progeny.append(prog_bad)               # must be false if parent is het
 
-keep = none_missing_a & putative_sites
+hets = np.array(hets).T
+min_quality = np.array(min_quality).T
+bad_progeny = np.array(bad_progeny).T
 
-print keep.sum(), '/', keep.size, 'sites meet all requirements of quality ' \
-                                  'and are segregating'
+keep = hets.any(axis=1) & min_quality.all(axis=1) & ~np.any(hets &
+                                                            bad_progeny, axis=1)
+
+print '{0}/{1} sites meet all requirements of quality and are ' \
+      'segregating'.format(np.sum(keep), np.size(keep))
 
 # check for mendelian errors
 mendelian_errors = list()
@@ -138,7 +150,7 @@ print mendelian_errors.sum(), 'mendelian errors observed'
 print unlikely_genotypes.sum(), 'unlikely parental genotypes observed'
 
 # not wild about this code, but seems to work!
-keep[keep] = np.invert(mendelian_errors | unlikely_genotypes)
+keep[keep] = ~(mendelian_errors | unlikely_genotypes)
 
 # now do some thinning
 keep_positions = np.compress(keep, position)
@@ -153,9 +165,9 @@ for i, pos in enumerate(keep_positions[1:]):
 
 # again, looks a little icky
 keep[keep] = not_thinned
-print "In total", keep.sum(), '/', keep.size, "sites retained"
 
-output_h5 = h5py.File(fn, 'w-')
+print "Thinning has removed {0} sites".format(np.sum(~not_thinned))
+print "In total {0}/{1} sites retained".format(np.sum(keep), np.size(keep))
 
 output_h5.create_group('/3L')
 output_h5.create_group('/3L/variants')
