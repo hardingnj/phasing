@@ -1,6 +1,7 @@
 from ast import literal_eval
 from distutils.core import setup
 
+
 def get_version(source='src/phasing/__init__.py'):
     with open(source) as f:
         for line in f:

@@ -209,8 +209,15 @@ def calc_regions(size, nbins=20, overlap=0):
 
 
 def determine_switches(a):
-    return np.diff(np.where(np.concatenate(([a[0]], a[:-1] != a[1:],
-                                            [True])))[0])
+    m = a[:-1] != a[1:]
+    co = np.where(np.concatenate(([False], m, [True])))[0]
+    ans = np.diff(np.insert(co, 0, 0))
+    try:
+        assert np.sum(ans) == a.size
+    except AssertionError:
+        print ans, a
+        return None
+    return ans
 
 
 # used to remove single errors
