@@ -64,9 +64,9 @@ for x in args.cross:
                                              args.bad_sites.__name__,
                                              'badsites.npz']))
     k = args.contig
-    number_variants = data[k]['variants']['POS'][:].size
-    chunks = np.arange(1, number_variants + chunk_size, chunk_size)
-    assert chunks.max() > number_variants
+    max_position = data[k]['variants']['POS'][:].max()
+    chunks = np.arange(1, max_position + chunk_size, chunk_size)
+    assert chunks.max() > max_position
 
     x_samples = pedigree[x]['parent'] + pedigree[x]['progeny']
 
@@ -86,7 +86,7 @@ for x in args.cross:
 
     bad_sites = np.concatenate(bad_sites)
     print '{0}/{1} sites with errors found'.format(np.size(bad_sites),
-                                                   number_variants)
+                                                   max_position)
     np.savez_compressed(os.path.join(args.outdir, fn), positions=bad_sites)
 
 print("--- Completed: {0} seconds ---".format(time.time() - start_time))
