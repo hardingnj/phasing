@@ -138,8 +138,9 @@ bad_positions = np.unique(np.concatenate(bad_positions))
 
 # whether pos is in bad pos list
 error, _ = anhima.loc.locate_positions(position, bad_positions)
-print '{0} sites excluded due to possible genotyping errors'.format(
-    error.sum())
+print '{0} sites blacklisted due to genotyping errors'.format(error.sum())
+print '{0} sites removed with {1} remaining'.format(np.sum(error & keep),
+                                                    np.sum(~error & keep))
 
 keep = keep & ~error
 
