@@ -456,9 +456,8 @@ def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
     # (left, bottom, width, height)
     ax = fig.add_axes(axes.pop())
     try:
-        window = (positions[-1] - positions[0])/100
         anhima.loc.plot_windowed_variant_density(positions,
-                                                 window_size=window,
+                                                 window_size=1e5,
                                                  ax=ax)
     except ValueError:
         pass
