@@ -103,7 +103,7 @@ class ShapeIt():
         self.h5_script = None
         self.si_script = None
         self.graph_convert = "{shapeit} -convert --input-graph {input} " + \
-            "-output-max {phased} {sample}"
+            "--output-max {phased} {sample} --aligned"
         self.dirs = {d: os.path.join(self.outdir, d) for d in ('log', 'script')}
         [sh.mkdir(d, '-p') for d in self.dirs.values() if not os.path.isdir(d)]
 
