@@ -102,6 +102,8 @@ class ShapeIt():
         self.duohmm_script = None
         self.h5_script = None
         self.si_script = None
+        self.graph_convert = "{shapeit} -convert --input-graph {input} " + \
+            "-output-max {phased} {sample}"
         self.dirs = {d: os.path.join(self.outdir, d) for d in ('log', 'script')}
         [sh.mkdir(d, '-p') for d in self.dirs.values() if not os.path.isdir(d)]
 
@@ -109,6 +111,7 @@ class ShapeIt():
                                          '_final.haps.gz')
         self.phased_f = os.path.join(self.outdir, self.run_id +
                                      '_final.samples.gz')
+
         self.h5out = os.path.join(self.outdir, self.run_id + '.h5')
 
         self.duohmm_haps = None
@@ -120,8 +123,9 @@ class ShapeIt():
                          'basedir': outdir, 'haps': self.haplotypes_f,
                          'samples': self.phased_f}
 
-    def setup_region_jobs(self, parameters, regions=None, vcf_file=None,
-                          pirs=None, duohmm=False, sample_file=None):
+    def setup_region_jobs(self, parameters, regions=None,
+                          vcf_file=None, pirs=None, graphs=False,
+                          duohmm=False, sample_file=None):
 
         # basically, set up a shapeIT job for each region. This may be several
         # lines long.
@@ -133,15 +137,17 @@ class ShapeIt():
 
         if pirs is not None:
             parameters.insert(0, '-assemble')
+            if graphs:
+                raise ValueError("PIRs not compatible with graphs")
 
         hap_files = list()
         for i, region in enumerate(regions):
             start, stop = [str(x) for x in region]
-            haps = os.path.join(self.outdir, region_dir, str(i) + '_' +
-                                self.run_id + '.haps.gz')
+            region_stem = os.path.join(self.outdir, region_dir,
+                                       str(i) + '_' + self.run_id)
+            haps = region_stem + '.haps.gz'
             hap_files.append(haps)
-            samples = os.path.join(self.outdir, region_dir, str(i) + '_' +
-                                   self.run_id + '.sample.gz')
+            samples = region_stem + '.sample.gz'
 
             pir_string = ''
             if pirs is not None:
@@ -149,10 +155,22 @@ class ShapeIt():
                 assert os.path.isfile(pir_f)
                 pir_string = " ".join(['--input-pir', pir_f])
 
-            files = ['--input-from', start, '--input-to', stop, pir_string,
-                     '--output-max', haps, samples]
+            files = ['--input-from', start, '--input-to', stop, pir_string]
 
-            cmd_shape_it = " ".join([self.executable] + parameters + files)
+            if graphs:
+                graph_fn = region_stem + '.graph'
+                output = ['--output-graph', graph_fn]
+
+                convert_cmd = self.graph_convert.format(shapeit=self.executable,
+                                                        input=graph_fn,
+                                                        phased=haps,
+                                                        sample=samples)
+            else:
+                output = ['--output-max', haps, samples]
+                convert_cmd = ''
+
+            cmd_shape_it = " ".join([self.executable] + parameters +
+                                    files + output)
 
             script_name = os.path.join(self.dirs['script'], str(i) +
                                        '_shapeIt.sh')
@@ -165,7 +183,7 @@ class ShapeIt():
             utils.create_sh_script(
                 filename=script_name,
                 commands=['cd ' + region_dir, exit_check % haps,
-                          cmd_shape_it],
+                          cmd_shape_it, convert_cmd],
                 outfile=haps)
 
             # name, script, mem, dependency

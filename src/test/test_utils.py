@@ -14,10 +14,11 @@ class TestMerlin(unittest.TestCase):
 
         # create array of 1s and 2s.
         random_array = np.random.choice((1, 2), 10000).reshape((-1, 2))
-        res_random = phasing.utils.calculate_switch_error(random_array)
-
-        self.assertItemsEqual(res_random.shape, (2,))
-        self.assertTrue(np.all(res_random > 0))
+        switch_e, ignored, shape = phasing.utils.calculate_switch_error(
+            random_array)
+        print switch_e
+        self.assertItemsEqual(switch_e.shape, (2,))
+        self.assertTrue(np.all(switch_e > 0))
 
     def test_no_se(self):
 
@@ -25,5 +26,6 @@ class TestMerlin(unittest.TestCase):
         test_array = np.hstack([np.ones((10000, 2)), np.ones((10000, 2)) + 1])
         self.assertItemsEqual(test_array.shape, (10000, 4))
 
-        res_test = phasing.utils.calculate_switch_error(test_array)
-        self.assertItemsEqual(res_test, (0, 0, 0, 0))
+        switch_e, ignore, shape = phasing.utils.calculate_switch_error(
+            test_array)
+        self.assertItemsEqual(switch_e, (0, 0, 0, 0))

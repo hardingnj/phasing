@@ -37,3 +37,27 @@ class TestShapeIt(unittest.TestCase):
                             regions=[(1, 10), (11, 20)], pirs=None,
                             vcf_file=self.tempfile)
         self.assertEquals(t.settings['params']['--thread'], '0.05')
+
+    def test_graphs(self):
+
+        tmp = tempfile.mkdtemp()
+        params = ['-B', self.tempfile, '--duohmm']
+
+        test_run = phasing.algorithms.ShapeIt(outdir=tmp)
+        test_run.setup_region_jobs(params, duohmm=False,
+                                   regions=[(1, 10), (11, 20)], pirs=None,
+                                   graphs=True, vcf_file=self.tempfile)
+
+        self.assertIsInstance(test_run.settings, dict)
+        self.assertEquals(test_run.settings['params']['-B'], self.tempfile)
+        self.assertTrue(test_run.settings['params']['--duohmm'])
+
+    def test_graphs_errors(self):
+        # if PIRs specified should error
+        tmp = tempfile.mkdtemp()
+        params = ['-B', self.tempfile, '--duohmm']
+        test_run = phasing.algorithms.ShapeIt(outdir=tmp)
+
+        self.assertRaises(ValueError, test_run.setup_region_jobs, params,
+                          duohmm=False, regions=[(1, 10), (11, 20)],
+                          pirs='file', graphs=True, vcf_file=self.tempfile)

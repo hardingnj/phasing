@@ -240,8 +240,8 @@ def calculate_switch_error(inheritance, ignore_size=0):
     switches = [determine_switches(np.compress(fgv, col))
                 for col, fgv in zip(inh_copy.T, forgiven)]
 
-    switch_e = [s.size - 1 for s in switches]
-    ignored = [np.sum(~f) for f in forgiven]
+    switch_e = np.array([s.size - 1 for s in switches])
+    ignored = np.array([np.sum(~f) for f in forgiven])
 
     return switch_e, ignored, inh_copy.shape
 
