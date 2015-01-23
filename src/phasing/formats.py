@@ -26,7 +26,7 @@ def write_merlin(output_stem, genotypes, positions, samples, ped_tbl,
     ped_fh = open(output_stem + '.ped', 'w')
 
     for i, s in enumerate(samples):
-        cross, mother, father = get_fam_info(s, ped_tbl)
+        cross, father, mother = get_fam_info(s, ped_tbl)
         line = "\t".join([cross, s, father, mother, '0', '0'] +
                          np.apply_along_axis("/".join, 1,
                                              genotypes[:, i].astype(
