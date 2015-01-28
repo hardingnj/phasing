@@ -9,6 +9,7 @@ import gzip
 from itertools import islice
 import os
 
+print 'ok'
 parser = argparse.ArgumentParser(description='Tool to convert shapeIt output '
                                              'to anhima readable')
 
@@ -16,7 +17,7 @@ parser.add_argument('haplotypes', help='haplotypes file')
 parser.add_argument('samples', help='samples file')
 
 parser.add_argument('-c', '--chunksize', dest='chunk_size', action='store',
-                    type=int, default=100000,
+                    type=int, default=1e5,
                     help='Number of lines to read at once from file')
 
 parser.add_argument('-z', '--compression', dest='comp_level', action='store',
@@ -46,40 +47,44 @@ samples_desc = fh_samples.readline()
 sample_info = fh_samples.readlines()
 sample_names = np.array([s.rstrip().split(' ') for s in sample_info])[:, 1]
 
+# count lines
+number_sites = sum(1 for line in gzip.open(args.haplotypes))
+print "Haplotypes file contains {0} snps.".format(number_sites)
+
 # create objects
 filters = Filters(complevel=args.comp_level, complib='zlib')
 samples = h5file.create_array(chrom, 'samples', sample_names)
 
 position = h5file.create_earray(grp_variants, name='POS',
                                 atom=IntAtom(itemsize=4),
-                                expectedrows=1000000, shape=(0, ),
+                                expectedrows=number_sites, shape=(0, ),
                                 filters=filters)
 
 identify = h5file.create_earray(grp_variants, name='ID',
                                 atom=StringAtom(itemsize=8),
-                                expectedrows=1000000, shape=(0, ),
+                                expectedrows=number_sites, shape=(0, ),
                                 filters=filters)
 
 reference = h5file.create_earray(grp_variants, name='REF',
                                  atom=StringAtom(itemsize=1),
-                                 expectedrows=1000000, shape=(0, ),
+                                 expectedrows=number_sites, shape=(0, ),
                                  filters=filters)
 
 alternate = h5file.create_earray(grp_variants, name='ALT',
                                  atom=StringAtom(itemsize=1),
-                                 expectedrows=1000000, shape=(0, ),
+                                 expectedrows=number_sites, shape=(0, ),
                                  filters=filters)
 
 genotypes = h5file.create_earray(grp_calldata, name='genotype',
                                  atom=IntAtom(itemsize=1),
-                                 expectedrows=1000000,
+                                 expectedrows=number_sites,
                                  shape=(0, sample_names.size, 2),
                                  filters=filters)
 
 fh_haplotypes = gzip.open(args.haplotypes, 'rb')
+
 while True:
     chunk = list(islice(fh_haplotypes, args.chunk_size))
-
     if not chunk:
         break
     as_np = np.array([line.rstrip().split(' ') for line in chunk])
