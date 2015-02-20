@@ -16,6 +16,7 @@ truth_h5: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/h5
 
 # general
 nbins: 25
+len3L: 41963435
 
 # For PIR jobs
 cross_samples: /home/njh/git/ag-crosses/meta/all_samples.txt

@@ -547,65 +547,60 @@ def log_factorial(x):
     return gammaln(np.array(x)+1)
 
 
-def memoize(function):
-    memo = {}
-
-    def wrapper(*inargs):
-        args = np.vstack(inargs).tostring()
-        if args in memo:
-            return memo[args]
-        else:
-            rv = function(*inargs)
-            memo[args] = rv
-            return rv
-    return wrapper
-
-
-@memoize
 def log_multinomial(xs, ps):
     xs, ps = np.array(xs), np.array(ps)
-    assert ps.sum() == 1
+    assert ps.sum() == 1.0
     result = log_factorial(np.sum(xs)) - np.sum(log_factorial(xs)) + \
         np.sum(xs * np.log(ps))
     return result
 
 
-def get_error_likelihood(parental_genotypes, progeny_genotypes, pe=0.001):
+def get_error_likelihood(parental_genotypes, progeny_genotypes,
+                         lookup=None, pe=0.001):
     """Returns the log likelihood that the stated parental genotypes are
      correct. """
 
     # classification = {1: 'HomRef_HomRef', 2: 'HomRef_Het',
     #                   3: 'HomRef_HomAlt', 4: 'Het_Het',
     #                   6: 'HomAlt_Het', 9: 'HomAlt_HomAlt'}
-
-    lookup = {1: (1-2*pe, pe, pe),
-              2: (0.5-pe/2, 0.5-pe/2, pe),
-              3: (pe, 1-2*pe, pe),
-              4: (0.25, 0.5, 0.25),
-              6: (pe, 0.5-pe/2, 0.5-pe/2),
-              9: (pe, pe, 1-2*pe)}
+    if lookup is None:
+        lookup = {1: (1-2*pe, pe, pe),
+                  2: (0.5-pe/2, 0.5-pe/2, pe),
+                  3: (pe, 1-2*pe, pe),
+                  4: (0.25, 0.5, 0.25),
+                  6: (pe, 0.5-pe/2, 0.5-pe/2),
+                  9: (pe, pe, 1-2*pe)}
 
     parental_genotypes = anhima.gt.as_012(parental_genotypes)
     progeny_genotypes = anhima.gt.as_012(progeny_genotypes)
 
+    memo_hash = dict()
+
     counts = np.vstack([np.sum(progeny_genotypes == 0, axis=1),
                         np.sum(progeny_genotypes == 1, axis=1),
-                        np.sum(progeny_genotypes == 2, axis=1)])
+                        np.sum(progeny_genotypes == 2, axis=1)]).T
 
     classification = return_classification(parental_genotypes)
     assert classification.ndim == 1
-    res = list()
+    res = np.zeros(classification.size)
     for i in xrange(classification.size):
         if classification[i] == 0:
-            res.append(0.0)
             continue
-        r = log_multinomial(counts[:, i],
-                            lookup[classification[i]])
 
-        v = np.max([log_multinomial(counts[:, i], lookup[key]) for key
-                    in lookup.keys() if key != classification[i]])
-        res.append(r - v)
-    return np.array(res)
+        key = "_".join(np.insert(
+            counts[i], 0, classification[i]).astype('string'))
+
+        if key in memo_hash:
+            res[i] = memo_hash[key]
+        else:
+            r = log_multinomial(counts[i],
+                                lookup[classification[i]])
+
+            v = np.max([log_multinomial(counts[i], lookup[key]) for key
+                        in lookup.keys() if key != classification[i]])
+            res[i] = (r - v)
+            memo_hash[key] = (r - v)
+    return res
 
 
 def get_consecutive_true(a):
