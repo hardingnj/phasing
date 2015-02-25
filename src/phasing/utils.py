@@ -590,16 +590,21 @@ def get_error_likelihood(parental_genotypes, progeny_genotypes,
         key = "_".join(np.insert(
             counts[i], 0, classification[i]).astype('string'))
 
-        if key in memo_hash:
-            res[i] = memo_hash[key]
-        else:
-            r = log_multinomial(counts[i],
-                                lookup[classification[i]])
+        if not key in memo_hash:
+            r = log_multinomial(counts[i], lookup[classification[i]])
 
-            v = np.max([log_multinomial(counts[i], lookup[key]) for key
-                        in lookup.keys() if key != classification[i]])
-            res[i] = (r - v)
-            memo_hash[key] = (r - v)
+            # now we take the keys from the other groups:
+            alt_list = list()
+            for pgt in filter(lambda k: k != classification[i], lookup.keys()):
+                v_key = "_".join(np.insert(counts[i], 0, pgt).astype('string'))
+                if not v_key in memo_hash:
+                    v = log_multinomial(counts[i], lookup[pgt])
+                    memo_hash[v_key] = v
+                alt_list.append(memo_hash[v_key])
+
+            memo_hash[key] = (r - max(alt_list))
+
+        res[i] = memo_hash[key]
     return res
 
 
