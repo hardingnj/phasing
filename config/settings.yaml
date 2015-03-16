@@ -14,9 +14,18 @@ outdir: /data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/c
 eval_h5: /data/anopheles/ag1000g/data/1000g_09_13/release/AR2/ag1000g.phase1.AR2.3L.PASS.h5
 truth_h5: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/h5/3L_ag-cross.h5
 
-# general
+# AR3 callset
+ar3_callset: /data/coluzzi/ag1000g/data/phase1/release/AR3/variation/main/vcf
+ar3_biallelic_pass: ag1000g.phase1.ar3.pass.biallelic.{CONTIG}
+
+# General
 nbins: 25
-len3L: 41963435
+contig_lengths:
+  2L:49364325
+  2R:61545105
+  3L:41963435
+  3R:53200684
+  X:24393108
 
 # For PIR jobs
 cross_samples: /home/njh/git/ag-crosses/meta/all_samples.txt
