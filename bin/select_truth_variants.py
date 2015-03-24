@@ -102,7 +102,7 @@ hets = list()
 min_quality = list()
 bad_progeny = list()
 
-for x in args.cross():
+for x in args.cross:
 
     parent_genotypes = genotypes[:, pedigree[x]['parent_idx']]
     parent_gqs = data[args.contig]['calldata']['GQ'][:, pedigree[x]['parent_idx']]
