@@ -10,13 +10,14 @@ bin_dir: /home/njh/git/phasing/bin
 ped_file: /home/njh/git/ag-crosses/meta/tbl_sample_ped.txt
 outdir: /data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/callsets/autosome
 
-# raw hdf5 files.
-eval_h5: /data/anopheles/ag1000g/data/1000g_09_13/release/AR2/ag1000g.phase1.AR2.3L.PASS.h5
-truth_h5: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR2/h5/3L_ag-cross.h5
-
 # AR3 callset
-ar3_callset: /data/coluzzi/ag1000g/data/phase1/release/AR3/variation/main/vcf
+ar3_callset: /data/coluzzi/ag1000g/data/phase1/release/AR3/variation/main
 ar3_biallelic_pass: ag1000g.phase1.ar3.pass.biallelic.{CONTIG}
+ar3_pass: ag1000g.phase1.ar3.pass.{CONTIG}
+
+# Crosses at AR3 sites
+cross_ids: ['42-4', '46-9', '36-9', '29-2']
+ar3_cross_calls: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR3/h5/{CONTIG}_ag-cross.h5
 
 # General
 nbins: 25
