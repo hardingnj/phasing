@@ -136,7 +136,7 @@ print '{0}/{1} sites meet all requirements of quality and are ' \
 
 # simply add all bad sites
 bad_positions = list()
-for x in pedigree.keys():
+for x in args.cross:
     print 'Processing cross:', x
     for v in ['li', 'me']:
         fn = os.path.join(args.baddir,
