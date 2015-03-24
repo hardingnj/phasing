@@ -57,9 +57,16 @@ pedigree, ped_table = ph.utils.read_pedigree_table(args.pedigree)
 if args.cross is None:
     args.cross = pedigree.keys()
 
+available_samples = data[args.contig]['samples'][:]
+
 for x in args.cross:
     bad_sites = list()
     print 'Processing cross:', x
+    assert np.in1d(pedigree[x]['parent'], available_samples).all(), \
+        "not all parents are available for cross " + x
+    assert np.in1d(pedigree[x]['progeny'], available_samples).all(), \
+        "not all progeny are available for cross " + x
+
     fn = os.path.join(args.outdir, "_".join([x, args.contig,
                                              args.bad_sites.__name__,
                                              'badsites.npz']))
@@ -68,7 +75,7 @@ for x in args.cross:
     chunks = np.arange(1, max_position + chunk_size, chunk_size)
     assert chunks.max() > max_position
 
-    x_samples = pedigree[x]['parent'] + pedigree[x]['progeny']
+    #x_samples = pedigree[x]['parent'] + pedigree[x]['progeny']
 
     for start, stop in zip(chunks[:-1], chunks[1:]):
         var, par_calldata = anhima.h5.load_region(data, k, start, stop, ['POS'],
