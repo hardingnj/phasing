@@ -52,6 +52,14 @@ parser.add_argument('--baddir', '-B', action='store', dest='baddir',
                     default=os.getcwd(), type=str,
                     help='location of bad sites numpy files')
 
+parser.add_argument('--cross', '-P', action='append',
+                    default=None, dest='cross',
+                    help='Which pedigree to evaluate. Assumes all otherwise')
+
+parser.add_argument('--chr', '-C', action='store', default=None, dest='contig',
+                    help='Which contig to evaluate.')
+
+
 # to do: add option to only filter individual crosses.
 args = parser.parse_args()
 for arg, value in sorted(vars(args).items()):
@@ -60,11 +68,13 @@ for arg, value in sorted(vars(args).items()):
 data = h5py.File(args.input)
 
 pedigree, ped_table = ph.utils.read_pedigree_table(args.pedigree)
+if args.cross is None:
+    args.cross = pedigree.keys()
 
-samples = data['3L']['samples'][:].tolist()
-position = data['3L']['variants']['POS'][:]
-reference = data['3L']['variants']['REF'][:]
-alternate = data['3L']['variants']['ALT'][:]
+samples = data[args.contig]['samples'][:].tolist()
+position = data[args.contig]['variants']['POS'][:]
+reference = data[args.contig]['variants']['REF'][:]
+alternate = data[args.contig]['variants']['ALT'][:]
 
 output_dir = os.path.join(args.outdir,
                           "q{0}_q{1}_p{2}_t{3}".format(args.parentGQ,
@@ -78,24 +88,24 @@ fn = os.path.join(output_dir, args.filestem + '.h5')
 output_h5 = h5py.File(fn, 'w-')
 print "Will output to:", fn
 
-for x in pedigree.keys():
+for x in args.cross:
     pedigree[x]['parent_idx'] = [samples.index(s)
                                  for s in pedigree[x]['parent']]
     pedigree[x]['progeny_idx'] = [samples.index(s)
                                   for s in pedigree[x]['progeny']]
 
 # grab genotypes
-genotypes = data['3L']['calldata']['genotype'][:]
+genotypes = data[args.contig]['calldata']['genotype'][:]
 
 # this could be sped up a little bit...
 hets = list()
 min_quality = list()
 bad_progeny = list()
 
-for x in pedigree.keys():
+for x in args.cross():
 
     parent_genotypes = genotypes[:, pedigree[x]['parent_idx']]
-    parent_gqs = data['3L']['calldata']['GQ'][:, pedigree[x]['parent_idx']]
+    parent_gqs = data[args.contig]['calldata']['GQ'][:, pedigree[x]['parent_idx']]
 
     # at least 1 parent must be a het
     heterozygotes = anhima.gt.is_het(parent_genotypes.any(axis=1))
@@ -106,7 +116,7 @@ for x in pedigree.keys():
     # both must be >= gq
     meet_gq = np.all(parent_gqs >= args.parentGQ, axis=1)
 
-    progeny_gq = data['3L']['calldata']['GQ'][:, pedigree[x]['progeny_idx']]
+    progeny_gq = data[args.contig]['calldata']['GQ'][:, pedigree[x]['progeny_idx']]
     prog_bad = np.mean(progeny_gq >= args.progenyGQ, axis=1) < 0.8
 
     # append to lists
@@ -130,7 +140,7 @@ for x in pedigree.keys():
     print 'Processing cross:', x
     for v in ['li', 'me']:
         fn = os.path.join(args.baddir,
-                          "_".join([x, '3L', v, 'badsites.npz']))
+                          "_".join([x, args.contig, v, 'badsites.npz']))
         bad_sites = np.load(fn)
         bad_positions.append(bad_sites['positions'])
 
@@ -167,41 +177,41 @@ output_h5.create_group('/3L/variants')
 output_h5.create_group('/3L/calldata')
 
 output_h5.create_dataset(
-    os.path.join('3L', 'variants', 'REF'),
+    os.path.join(args.contig, 'variants', 'REF'),
     data=np.compress(keep, reference),
     chunks=(1000,),
     compression='gzip',
     compression_opts=1)
 
 output_h5.create_dataset(
-    os.path.join('3L', 'variants', 'ALT'),
+    os.path.join(args.contig, 'variants', 'ALT'),
     data=np.compress(keep, alternate),
     chunks=(1000,),
     compression='gzip',
     compression_opts=1)
 
 output_h5.create_dataset(
-    os.path.join('3L', 'variants', 'POS'),
+    os.path.join(args.contig, 'variants', 'POS'),
     data=np.compress(keep, position),
     chunks=(1000,),
     compression='gzip',
     compression_opts=1)
 
 output_h5.create_dataset(
-    os.path.join('3L', 'samples'),
+    os.path.join(args.contig, 'samples'),
     data=np.array(samples))
 
 output_h5.create_dataset(
-    os.path.join('3L', 'calldata', 'genotype'),
+    os.path.join(args.contig, 'calldata', 'genotype'),
     data=np.compress(keep, genotypes, axis=0),
     chunks=(1000, 10, 2),
     compression='gzip',
     compression_opts=1)
 genotypes = None
 
-genotype_qual = data['3L']['calldata']['GQ'][:]
+genotype_qual = data[args.contig]['calldata']['GQ'][:]
 output_h5.create_dataset(
-    os.path.join('3L', 'calldata', 'GQ'),
+    os.path.join(args.contig, 'calldata', 'GQ'),
     data=np.compress(keep, genotype_qual, axis=0),
     chunks=(1000, 10),
     compression='gzip',
