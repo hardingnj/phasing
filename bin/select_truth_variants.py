@@ -94,42 +94,63 @@ for x in args.cross:
     pedigree[x]['progeny_idx'] = [samples.index(s)
                                   for s in pedigree[x]['progeny']]
 
-# grab genotypes
-genotypes = data[args.contig]['calldata']['genotype'][:]
 
 # this could be sped up a little bit...
 hets = list()
 min_quality = list()
 bad_progeny = list()
 
-for x in args.cross:
+nvar = data[args.contig]['variants']['POS'].size
+chunk_size = data[args.contig]['calldata']['genotype'].chunks[0]
+steps = np.arange(0, nvar, chunk_size, dtype=int)
 
-    parent_genotypes = genotypes[:, pedigree[x]['parent_idx']]
-    parent_gqs = data[args.contig]['calldata']['GQ'][:, pedigree[x]['parent_idx']]
+for s in steps:
+    # grab genotypes
+    genotypes = data[args.contig]['calldata']['genotype'][s:s + chunk_size]
+    geno_qs = data[args.contig]['calldata']['GQ'][s: s + chunk_size]
+    step_hets, step_min_q, step_badp = list(), list(), list()
+    for x in args.cross:
 
-    # at least 1 parent must be a het
-    heterozygotes = anhima.gt.is_het(parent_genotypes.any(axis=1))
+        parent_genotypes = np.take(pedigree[x]['parent_idx'],
+                                   genotypes, axis=1)
 
-    # both must be called
-    present_gts = anhima.gt.is_called(parent_genotypes).all(axis=1)
+        parent_gqs = np.take(pedigree[x]['parent_idx'],
+                             geno_qs, axis=1)
 
-    # both must be >= gq
-    meet_gq = np.all(parent_gqs >= args.parentGQ, axis=1)
+        # at least 1 parent must be a het
+        heterozygotes = anhima.gt.is_het(parent_genotypes.any(axis=1))
 
-    progeny_gq = data[args.contig]['calldata']['GQ'][:, pedigree[x]['progeny_idx']]
-    prog_bad = np.mean(progeny_gq >= args.progenyGQ, axis=1) < 0.8
+        # both must be called
+        present_gts = anhima.gt.is_called(parent_genotypes).all(axis=1)
 
-    # append to lists
-    hets.append(heterozygotes)                 # can be true in any 1
-    min_quality.append(meet_gq & present_gts)  # must be true in all
-    bad_progeny.append(prog_bad)               # must be false if parent is het
+        # both must be >= gq
+        meet_gq = np.all(parent_gqs >= args.parentGQ, axis=1)
 
-hets = np.array(hets).T
-min_quality = np.array(min_quality).T
-bad_progeny = np.array(bad_progeny).T
+        progeny_gq = np.take(pedigree[x]['progeny_idx'],
+                             geno_qs, axis=1)
 
-keep = hets.any(axis=1) & min_quality.all(axis=1) & ~np.any(hets &
-                                                            bad_progeny, axis=1)
+        prog_bad = np.mean(progeny_gq >= args.progenyGQ, axis=1) < 0.8
+
+        # can be true in any 1 cross
+        step_hets.append(heterozygotes)
+
+        # must be true in all
+        step_min_q.append(meet_gq & present_gts)
+
+        # must be false if parent is a het
+        step_badp.append(prog_bad)
+
+    hets.append(np.array(step_hets).T)
+    min_quality.append(np.array(step_min_q).T)
+    bad_progeny.append(np.array(step_badp).T)
+
+hets = np.vstack(hets)
+min_quality = np.vstack(min_quality)
+bad_progeny = np.vstack(bad_progeny)
+
+keep = hets.any(axis=1) & \
+    min_quality.all(axis=1) & \
+    ~np.any(hets & bad_progeny, axis=1)
 
 print '{0}/{1} sites meet all requirements of quality and are ' \
       'segregating'.format(np.sum(keep), np.size(keep))
