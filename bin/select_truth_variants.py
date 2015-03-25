@@ -107,12 +107,12 @@ steps = np.arange(0, nvar, chunk_size, dtype=int)
 for s in steps:
     # grab genotypes
     genotypes = data[args.contig]['calldata']['genotype'][s:s + chunk_size]
+
     geno_qs = data[args.contig]['calldata']['GQ'][s: s + chunk_size]
     step_hets, step_min_q, step_badp = list(), list(), list()
     for x in args.cross:
 
         parent_genotypes = np.take(genotypes, pedigree[x]['parent_idx'], axis=1)
-
         parent_gqs = np.take(geno_qs, pedigree[x]['parent_idx'], axis=1)
 
         # at least 1 parent must be a het
@@ -124,8 +124,7 @@ for s in steps:
         # both must be >= gq
         meet_gq = np.all(parent_gqs >= args.parentGQ, axis=1)
 
-        progeny_gq = np.take(pedigree[x]['progeny_idx'],
-                             geno_qs, axis=1)
+        progeny_gq = np.take(geno_qs, pedigree[x]['progeny_idx'], axis=1)
 
         prog_bad = np.mean(progeny_gq >= args.progenyGQ, axis=1) < 0.8
 
