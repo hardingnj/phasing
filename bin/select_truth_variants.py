@@ -49,7 +49,7 @@ parser.add_argument('--thinning', '-T', action='store', dest='gap',
                     help='enforced gap between genotypes')
 
 parser.add_argument('--baddir', '-B', action='store', dest='baddir',
-                    default=os.getcwd(), type=str,
+                    default=None, type=str,
                     help='location of bad sites numpy files')
 
 parser.add_argument('--cross', '-P', action='append',
@@ -149,33 +149,36 @@ keep = hets.any(axis=1) & \
     min_quality.all(axis=1) & \
     ~np.any(hets & bad_progeny, axis=1)
 
+count_hets = hets.sum(axis=1)
+
 print '{0}/{1} sites meet all requirements of quality and are ' \
       'segregating'.format(np.sum(keep), np.size(keep))
 
-# simply add all bad sites
-bad_positions = list()
-for x in args.cross:
-    print 'Processing cross:', x
-    for v in ['li', 'me']:
-        fn = os.path.join(args.baddir,
-                          "_".join([x, args.contig, v, 'badsites.npz']))
-        bad_sites = np.load(fn)
-        bad_positions.append(bad_sites['positions'])
+if args.baddir is not None:
+    # simply add all bad sites
+    bad_positions = list()
+    for x in args.cross:
+        print 'Processing cross:', x
+        for v in ['li', 'me']:
+            fn = os.path.join(args.baddir,
+                              "_".join([x, args.contig, v, 'badsites.npz']))
+            bad_sites = np.load(fn)
+            bad_positions.append(bad_sites['positions'])
 
-bad_positions = np.unique(np.concatenate(bad_positions))
+    bad_positions = np.unique(np.concatenate(bad_positions))
 
-# whether pos is in bad pos list
-error, _ = anhima.loc.locate_positions(position, bad_positions)
-print '{0} sites blacklisted due to genotyping errors'.format(error.sum())
-print '{0} sites removed with {1} remaining'.format(np.sum(error & keep),
-                                                    np.sum(~error & keep))
+    # whether pos is in bad pos list
+    error, _ = anhima.loc.locate_positions(position, bad_positions)
+    print '{0} sites blacklisted due to genotyping errors'.format(error.sum())
+    print '{0} sites removed with {1} remaining'.format(np.sum(error & keep),
+                                                        np.sum(~error & keep))
 
-keep = keep & ~error
+    keep = keep & ~error
 
 # Thin the positions
 keep_positions = np.compress(keep, position)
 
-lp = keep_positions[0]    # bit tricky, won't allow passes until gets here
+lp = keep_positions[0]
 not_thinned = np.copy(keep)
 
 for i in range(not_thinned.size - 1):
@@ -219,13 +222,14 @@ output_h5.create_dataset(
     os.path.join(args.contig, 'samples'),
     data=np.array(samples))
 
+load_genotypes = data[args.contig]['calldata']['genotype'][:]
 output_h5.create_dataset(
     os.path.join(args.contig, 'calldata', 'genotype'),
-    data=np.compress(keep, genotypes, axis=0),
+    data=np.compress(keep, load_genotypes, axis=0),
     chunks=(1000, 10, 2),
     compression='gzip',
     compression_opts=1)
-genotypes = None
+load_genotypes = None
 
 genotype_qual = data[args.contig]['calldata']['GQ'][:]
 output_h5.create_dataset(
