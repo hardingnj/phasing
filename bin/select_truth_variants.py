@@ -111,11 +111,9 @@ for s in steps:
     step_hets, step_min_q, step_badp = list(), list(), list()
     for x in args.cross:
 
-        parent_genotypes = np.take(pedigree[x]['parent_idx'],
-                                   genotypes, axis=1)
+        parent_genotypes = np.take(genotypes, pedigree[x]['parent_idx'], axis=1)
 
-        parent_gqs = np.take(pedigree[x]['parent_idx'],
-                             geno_qs, axis=1)
+        parent_gqs = np.take(geno_qs, pedigree[x]['parent_idx'], axis=1)
 
         # at least 1 parent must be a het
         heterozygotes = anhima.gt.is_het(parent_genotypes.any(axis=1))
