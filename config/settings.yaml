@@ -21,7 +21,7 @@ ar3_cross_calls: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG
 
 # General
 nbins: 25
-contig_lengths: {2L: 49364325, 2R: 61545105, 3L: 41963435, 3R: 53200684, X: 24393108}
+contig_lengths: {2L: 49364325, 2R: 61545105, 3L: 41963435, 3R: 53200684, X: 24393108, Y_unplaced: 237045, UNKN: 42389979}
 
 # For PIR jobs
 cross_samples: /home/njh/git/ag-crosses/meta/all_samples.txt
