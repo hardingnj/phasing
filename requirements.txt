@@ -9,3 +9,4 @@ hashlib
 h5py
 pandas
 tables
+hmmlearn
