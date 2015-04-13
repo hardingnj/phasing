@@ -27,4 +27,5 @@ setup(
                  'Topic :: Software Development :: Libraries :: Python Modules'
                  ],
     scripts=['bin/shapeIt2hdf5.py', 'bin/hdf5_2_vcf.py',
-             'bin/select_truth_variants.py', 'bin/report_ME.py'])
+             'bin/select_truth_variants.py', 'bin/report_ME.py',
+             'bin/identify_roh.py'])
