@@ -17,7 +17,7 @@ ar3_pass: ag1000g.phase1.ar3.pass.{CONTIG}
 
 # Crosses at AR3 sites
 cross_ids: ['42-4', '46-9', '36-9', '29-2']
-ar3_cross_calls: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR3/h5/{CONTIG}_ag-cross.h5
+ar3_cross_calls: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR3/h5/ag1000g.crosses.phase1.ar3sites.pass.biallelic.{CHROM}.vcf.gz
 
 # General
 nbins: 25
