@@ -243,11 +243,12 @@ def calculate_switch_error(inheritance, ignore_size=0):
     switch_e = np.array([s.size - 1 for s in switches])
     ignored = np.array([np.sum(~f) for f in forgiven])
 
-    return switch_e, ignored, inh_copy.shape
+    return switch_e, ignored, inh_copy.shape, switches
 
 
 def calculate_switch_length(inheritance, positions, ignore_size=0,
                             index_only=False):
+    assert inheritance.shape[0] == positions.size
 
     # only 1s and 2s are relevant
     exclude = np.any(inheritance < 3, axis=1)
@@ -257,6 +258,7 @@ def calculate_switch_length(inheritance, positions, ignore_size=0,
     switches = [determine_switches(np.compress(fgv, col))
                 for col, fgv in zip(inh_copy.T, forgiven)]
 
+    filtered_pos = None
     if index_only:
         mean_length = [np.mean(s) for s in switches]
         medi_length = [np.median(s) for s in switches]
@@ -273,7 +275,7 @@ def calculate_switch_length(inheritance, positions, ignore_size=0,
         medi_length = np.array([np.median(np.diff(f)) for f in filtered_pos])
         maxi_length = np.array([np.max(np.diff(f)) for f in filtered_pos])
 
-    return mean_length, medi_length, maxi_length
+    return mean_length, medi_length, maxi_length, filtered_pos
 
 
 def plot_ped_haplotype_inheritance(parent_genotypes,
