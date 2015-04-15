@@ -193,9 +193,9 @@ print "Thinning has removed {0} sites".format(np.sum(keep) - not_thinned.sum())
 keep = not_thinned
 print "In total {0}/{1} sites retained".format(np.sum(keep), np.size(keep))
 
-output_h5.create_group('/3L')
-output_h5.create_group('/3L/variants')
-output_h5.create_group('/3L/calldata')
+output_h5.create_group('/{0}'.format(args.contig))
+output_h5.create_group('/{0}/variants'.format(args.contig))
+output_h5.create_group('/{0}/calldata'.format(args.contig))
 
 output_h5.create_dataset(
     os.path.join(args.contig, 'variants', 'REF'),
