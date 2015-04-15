@@ -7,7 +7,7 @@ min_called: 0.8
 # directories and files
 pyenv: /home/njh/pyenv/science/bin/python
 bin_dir: /home/njh/git/phasing/bin
-ped_file: /home/njh/git/ag-crosses/meta/tbl_sample_ped.txt
+ped_file: /home/njh/git/ag-crosses/meta/tbl_sample_ped_ag1k.txt
 outdir: /data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/callsets/autosome
 
 # AR3 callset
@@ -17,7 +17,7 @@ ar3_pass: ag1000g.phase1.ar3.pass.{CONTIG}
 
 # Crosses at AR3 sites
 cross_ids: ['42-4', '46-9', '36-9', '29-2']
-ar3_cross_calls: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR3/h5/ag1000g.crosses.phase1.ar3sites.pass.biallelic.{CHROM}.vcf.gz
+ar3_cross_calls: /data/anopheles/ag-crosses/data/release/0.1.GATK.PHASING.1000AG.AR3/h5/ag1000g.crosses.phase1.ar3sites.pass.biallelic.{CHROM}.h5
 
 # General
 nbins: 25
