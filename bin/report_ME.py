@@ -20,7 +20,7 @@ def li(pa, pr):
 
 
 start_time = time.time()
-chunk_size = 2e5
+chunk_size = int(2e5)
 parser = argparse.ArgumentParser(
     description='Tool to select the set of variants to phase from the'
                 'truth set (from hdf5 file)')
@@ -71,29 +71,31 @@ for x in args.cross:
                                              args.bad_sites.__name__,
                                              'badsites.npz']))
     k = args.contig
-    max_position = data[k]['variants']['POS'][:].max()
-    chunks = np.arange(1, max_position + chunk_size, chunk_size)
-    assert chunks.max() > max_position
+    n_variants = data[k]['variants']['POS'][:].size
+    chunks = np.arange(0, n_variants, chunk_size).astype('int')
 
-    #x_samples = pedigree[x]['parent'] + pedigree[x]['progeny']
+    parent_idx = np.where(np.in1d(available_samples,
+                                  pedigree[x]['parent']))[0]
+    progeny_idx = np.where(np.in1d(available_samples,
+                                   pedigree[x]['progeny']))[0]
 
-    for start, stop in zip(chunks[:-1], chunks[1:]):
-        var, par_calldata = anhima.h5.load_region(data, k, start, stop, ['POS'],
-                                                  ['genotype'],
-                                                  samples=pedigree[x]['parent'])
+    for i in chunks:
+        pos = data[k]['variants']['POS'][i:i + chunk_size]
 
-        _, pro_calldata = anhima.h5.load_region(data, k, start, stop, None,
-                                                ['genotype'],
-                                                samples=pedigree[x]['progeny'])
+        genotypes = data[k]['calldata']['genotype'][i:i + chunk_size]
 
-        errors = args.bad_sites(par_calldata['genotype'],
-                                pro_calldata['genotype'])
+        parent_gt = np.take(genotypes, parent_idx, axis=1)
+        progeny_gt = np.take(genotypes, progeny_idx, axis=1)
 
-        bad_sites.append(np.compress(errors, var['POS']))
+        assert parent_gt.ndim == 3 == progeny_gt.ndim
+        assert parent_gt.shape[0] > 0 < progeny_gt.shape[0]
+
+        errors = args.bad_sites(parent_gt, progeny_gt)
+        bad_sites.append(np.compress(errors, pos))
 
     bad_sites = np.concatenate(bad_sites)
-    print '{0}/{1} sites with errors found'.format(np.size(bad_sites),
-                                                   max_position)
+    print '{0:,} / {1:,} sites with errors found'.format(np.size(bad_sites),
+                                                         n_variants)
     np.savez_compressed(os.path.join(args.outdir, fn), positions=bad_sites)
 
-print("--- Completed: {0} seconds ---".format(time.time() - start_time))
+print("--- Completed: {0:.4} seconds ---".format(time.time() - start_time))
