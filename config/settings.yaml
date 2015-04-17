@@ -1,13 +1,14 @@
 # For determining truth variants to phase
-gq_parent: 40
+gq_parent: 50
 gq_progeny: 30
-thinning: 75
+thinning: 20
 min_called: 0.8
 
 # directories and files
 pyenv: /home/njh/pyenv/science/bin/python
 bin_dir: /home/njh/git/phasing/bin
 ped_file: /home/njh/git/ag-crosses/meta/tbl_sample_ped_ag1k.txt
+merlin_ped_file: /home/njh/git/ag-crosses/meta/merlin_ped_ag1k.ped
 outdir: /data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/callsets/autosome
 
 # AR3 callset
