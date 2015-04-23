@@ -3,172 +3,27 @@
 # external
 import numpy as np
 import matplotlib.pyplot as plt
+import gzip
 
 # internal
 import anhima
 import sh
 from scipy.special import gammaln
-from itertools import izip
+from collections import Counter
 import pandas as pd
 import hashlib
-
-
-def get_relevant_haplotpes(pat_idx, mat_idx, pro_idx, hap_gt, hap_pos):
-
-    """ for a given indices returns the parental and progeny genotypes
-        cutting out any non segregating sites for plotting
-
-     - pat_idx index of paternal diploid genotype
-     - mat_idx index of maternal diploid genotype
-     - pro_idx indices of progeny diploid genotypes
-         (all indices refer to the 2nd dimension of hap_gt)
-     - hap_gt 3D genotype matrix, variants X samples X ploidy.
-     - hap_pos a numpy array of the positions, this is required so we can cut
-       out the non interesting positions.
-
-    - returns the maternal, paternal, progeny and position genotypes
-
-    """
-    # obtain haplotypes
-    pat_haplotypes = np.compress(pat_idx, hap_gt, axis=1).reshape(
-        hap_gt.shape[0], -1)
-    mat_haplotypes = np.compress(mat_idx, hap_gt, axis=1).reshape(
-        hap_gt.shape[0], -1)
-    
-    progeny_haps = np.compress(pro_idx, hap_gt, axis=1).reshape(
-        hap_gt.shape[0], -1)
-
-    # before returning, include only segregating positions
-    is_seg = anhima.gt.is_het(pat_haplotypes) | anhima.gt.is_het(mat_haplotypes)
-    
-    pat_haplotypes = np.compress(is_seg, pat_haplotypes, axis=0)
-    mat_haplotypes = np.compress(is_seg, mat_haplotypes, axis=0)
-    progeny_haps = np.compress(is_seg, progeny_haps, axis=0)
-    cmp_pos = np.compress(is_seg, hap_pos, axis=0)
-        
-    return pat_haplotypes, mat_haplotypes, progeny_haps, cmp_pos
-
-
-def calc_distance_matrix(parental_haplotypes, progeny_haplotypes):
-
-    """
-:param parental_haplotypes: matrix of parental haplotypes
-:param progeny_haplotypes: matrix of progeny haplotypes
-:return: distance matrix from parental haplotypes. Just counts the number
- of non-agreements. Resulting matrix is S x 4 (4 parental haplotypes)
-"""
-
-    # we exclude homozygotic sites as they are uninformative.
-    is_het = anhima.gt.is_het(parental_haplotypes)
-    par_hts = np.compress(is_het, parental_haplotypes, axis=0)
-    pro_hts = np.compress(is_het, progeny_haplotypes,  axis=0)
-
-    # I suspect there is a far easier way to do this!
-    distance_mat = [np.apply_along_axis(
-        lambda a, b: np.absolute(a-b).sum(), 
-        0, 
-        pro_hts,
-        par_hts[:, i]
-    ) for i in range(par_hts.shape[1])]
-
-    distance_mat = np.array(distance_mat).T
-
-    # Normalize by the number of hets
-    return distance_mat / float(is_het.sum())
-
-
-def calc_best_assignment_qual(parental_haplotypes, progeny_haplotypes):
-
-    """
-function that calculates number of impossible haplotype assignments.
-:param parental_haplotypes: 2D array, N x 4
-:param progeny_haplotypes: 2D array of same N x S. Every pair is an individual.
-:return: Returns the vector of how parimonious the best explantion is.
-         Result is length S/2
-"""
-
-    distance_mat = calc_distance_matrix(parental_haplotypes, progeny_haplotypes)
-    
-    dmr = distance_mat.reshape(distance_mat.shape[0]/2, 2, 4)
-    
-    combs = [(0, 2), (0, 3), (1, 2), (1, 3)]
-    
-    l = []
-    for i in range(dmr.shape[0]):
-        v = dmr[i]
-        l.append(np.min(
-            [v[0, c[0]] + v[1, c[1]] for c in combs]
-        ))
-    assert len(l) == progeny_haplotypes.shape[1]/2
-
-    return np.mean(l)
-
-
-def plot_haplotype_descent(parental_haplotypes, progeny_haplotypes, positions):
-
-    """
-Creates a plot of haplotype descent using matplot lib
-:param parental_haplotypes: 2D array. N x 2
-:param progeny_haplotypes:  2D array. N x S
-:param positions: 1D array of same N
-:return: Nothing
-"""
-
-    n_parents = parental_haplotypes.shape[1]
-    n_progeny = progeny_haplotypes.shape[1]
-    
-    # determine figure dimensions
-    # plot haplotypes, allow 1 for each progeny, 1.5 for each parent
-    # and 2 for pos
-    fig_h = 1.0 + 0.3*(n_progeny + n_parents)
-    par_pro_gap = 0.02
-    par_par_gap = 0.01
-    hap_width = (1.0-par_pro_gap)/(n_parents+n_progeny)
-
-    pat_panel = (0, 0.1 + (2+n_progeny)*hap_width+par_par_gap+par_pro_gap,
-                 1, 2*hap_width)
-    mat_panel = (0, 0.1 + (n_progeny*hap_width)+par_pro_gap,
-                 1, 2*hap_width)
-    mid_panel = (0, 0.1, 1, n_progeny*hap_width)
-    bot_panel = (0, 0, 1, 0.08)
-    
-    fig = plt.figure(figsize=(14, fig_h))
-
-    ax = fig.add_axes(pat_panel)
-    anhima.gt.plot_diploid_genotypes(
-        np.flipud(parental_haplotypes[:, 0:2]),
-        ax=ax, 
-        colors=('white', 'black', 'pink')
-    )
-    
-    ax = fig.add_axes(mat_panel)
-    anhima.gt.plot_diploid_genotypes(
-        np.flipud(parental_haplotypes[:, 2:4]),
-        ax=ax, 
-        colors=('white', 'black', 'pink')
-    )
-    
-    ax = fig.add_axes(mid_panel)
-    anhima.gt.plot_diploid_genotypes(
-        np.flipud(progeny_haplotypes), 
-        ax=ax, 
-        colors=('white', 'black', 'pink')
-    )
-
-    # plot variant locator
-    ax = fig.add_axes(bot_panel)
-    anhima.loc.plot_variant_locator(positions, step=10, ax=ax)
+is_het = anhima.gt.is_het
 
 
 def create_sh_script(filename, commands=None, outfile=None):
 
     """
-# Not strictly a phasing function, but so commonly used, may as well put here!
-:param filename: name of file to write
-:param commands: list of strings that will be system executed
-:param outfile: optional, creates an 'ok' version of this file
-:return: None
-"""
+    # Not strictly a phasing function, but so commonly used, may as well put here!
+    :param filename: name of file to write
+    :param commands: list of strings that will be system executed
+    :param outfile: optional, creates an 'ok' version of this file
+    :return: None
+    """
 
     # create script file
     if outfile is None:
@@ -208,265 +63,20 @@ def calc_regions(size, nbins=20, overlap=0):
     return regions
 
 
-def determine_switches(a):
-    m = a[:-1] != a[1:]
-    co = np.where(np.concatenate(([False], m, [True])))[0]
-    ans = np.diff(np.insert(co, 0, 0))
-    try:
-        assert np.sum(ans) == a.size
-    except AssertionError:
-        print ans, a
-        return None
-    return ans
+# may get moved to py_shapeit
+def parse_duohmm_genotype_error(fn, sample_names, threshold=0.5):
 
+    samples = list()
+    with gzip.open(fn, 'r') as fh:
+        header = fh.readline().rstrip().split()
 
-# used to remove single errors
-def forgive(a, ignore=1):
-    assert 2 > ignore >= 0
-    idx = np.where(np.concatenate(([a[0]], a[:-1] != a[1:], [True])))[0]
-    switch = np.diff(idx)
-    forgive_me = np.ones(a.shape, dtype='bool')
-    forgive_me[idx[switch <= ignore]] = False
-    return forgive_me
+        for li in fh.readlines():
+            ID, father, mother, RSID, pos, prob = li.rstrip().split()
+            if float(prob) >= threshold:
+                samples.append(ID)
 
-
-def calculate_switch_error(inheritance, ignore_size=0):
-
-    # only 1s and 2s are relevant
-    exclude = np.any(inheritance < 3, axis=1)
-    inh_copy = np.compress(exclude, inheritance.copy(), axis=0)
-
-    forgiven = [forgive(col, ignore_size) for col in inh_copy.T]
-    switches = [determine_switches(np.compress(fgv, col))
-                for col, fgv in zip(inh_copy.T, forgiven)]
-
-    switch_e = np.array([s.size - 1 for s in switches])
-    ignored = np.array([np.sum(~f) for f in forgiven])
-
-    return switch_e, ignored, inh_copy.shape, switches
-
-
-def calculate_switch_length(inheritance, positions, ignore_size=0,
-                            index_only=False):
-    assert inheritance.shape[0] == positions.size
-
-    # only 1s and 2s are relevant
-    exclude = np.any(inheritance < 3, axis=1)
-    inh_copy = np.compress(exclude, inheritance.copy(), axis=0)
-
-    forgiven = [forgive(col, ignore_size) for col in inh_copy.T]
-    switches = [determine_switches(np.compress(fgv, col))
-                for col, fgv in zip(inh_copy.T, forgiven)]
-
-    filtered_pos = None
-    if index_only:
-        mean_length = [np.mean(s) for s in switches]
-        medi_length = [np.median(s) for s in switches]
-        maxi_length = [np.median(s) for s in switches]
-    else:
-        assert inheritance.shape[0] == positions.shape[0]
-        pos = np.compress(exclude, positions)
-
-        filtered_pos = [np.insert(np.take(np.compress(fgv, pos),
-                                          sw.cumsum() - 1), 0, pos[0])
-                        for fgv, sw in zip(forgiven, switches)]
-
-        mean_length = np.array([np.mean(np.diff(f)) for f in filtered_pos])
-        medi_length = np.array([np.median(np.diff(f)) for f in filtered_pos])
-        maxi_length = np.array([np.max(np.diff(f)) for f in filtered_pos])
-
-    return mean_length, medi_length, maxi_length, filtered_pos
-
-
-def plot_ped_haplotype_inheritance(parent_genotypes,
-                                   progeny_genotypes,
-                                   positions,
-                                   filename=None,
-                                   downsample=10000,
-                                   select='eitherhet',
-                                   title='Haplotype inheritance',
-                                   inheritance_colors=('red', 'blue',
-                                                       'green', 'orange',
-                                                       'black', 'yellow',
-                                                       'white'),
-                                   spacer=0.05,
-                                   panel_height_ratios=(3.0, 3.0, 1.0, 1.0),
-                                   progeny_labels=None):
-    """
-    Creates a plot for each pedigree in the pedigree dict
-    :param run: an instance of Tool
-    :param pedigree: a dict
-    :param inheritance_colors: colour scheme
-    :param spacer: gap between panels
-    :param panel_height_ratios: relative size of each panel
-    :return:
-    """
-
-    panel_heights = np.array(panel_height_ratios)/np.sum(panel_height_ratios)\
-        - spacer
-
-    selection = np.ones(parent_genotypes.shape[0], dtype='bool')
-    if select == 'eitherhet':
-        selection = anhima.gt.is_het(parent_genotypes).any(axis=1)
-    elif select == 'bothhet':
-        selection = anhima.gt.is_het(parent_genotypes).all(axis=1)
-
-    # downsample
-    if downsample is not None:
-        where = np.where(selection)[0]
-        idx = np.random.choice(where, downsample, replace=False)
-        toplot = np.zeros(selection.shape, dtype='bool')
-        toplot[idx] = True
-        print 'Downsampling from {0} to {1} for plotting'.format(str(
-            selection.sum()), str(downsample))
-    else:
-        toplot = selection
-
-    father = np.compress(toplot, parent_genotypes[:, 0], axis=0)
-    mother = np.compress(toplot, parent_genotypes[:, 1], axis=0)
-
-    # NB: critical assumption of genotypes here
-    paternal_haplotypes = np.compress(toplot, progeny_genotypes,
-                                      axis=0)[:, :, 0]
-    maternal_haplotypes = np.compress(toplot, progeny_genotypes,
-                                      axis=0)[:, :, 1]
-
-    positions = np.compress(selection, positions, axis=0)
-
-    # Again assumption of correct location of parents in dict
-    maternal_inheritance = anhima.ped.diploid_inheritance(
-        mother, maternal_haplotypes)
-    paternal_inheritance = anhima.ped.diploid_inheritance(
-        father, paternal_haplotypes)
-
-    axes = [(0, n*spacer + panel_heights[:n].sum(),
-             1, panel_heights[n]) for n in range(panel_heights.size)]
-
-    fig, ax = plt.subplots(figsize=(12, 8))
-    progeny_labels.reverse()
-
-    plt.title(title)   # subplot 211 title
-
-    # (left, bottom, width, height)
-    ax = fig.add_axes(axes.pop())
-    anhima.loc.plot_windowed_variant_density(positions,
-                                             window_size=50000,
-                                             ax=ax)
-
-    ax = fig.add_axes(axes.pop())
-    anhima.loc.plot_variant_locator(positions,
-                                    step=1000,
-                                    ax=ax,
-                                    flip=False)
-
-    ax = fig.add_axes(axes.pop())
-    anhima.gt.plot_discrete_calldata(paternal_inheritance,
-                                     colors=inheritance_colors,
-                                     labels=progeny_labels,
-                                     states=range(1, 8),
-                                     ax=ax)
-
-    ax = fig.add_axes(axes.pop())
-    anhima.gt.plot_discrete_calldata(maternal_inheritance,
-                                     colors=inheritance_colors,
-                                     labels=progeny_labels,
-                                     states=range(1, 8),
-                                     ax=ax)
-    if filename is not None:
-        plt.savefig(filename, bbox_inches='tight')
-    return ax
-
-
-def plot_single_hap_inheritance(parent_genotypes, gamete_haplotypes, positions,
-                                show_all=False, filename=None, downsample=10000,
-                                inheritance_colors=('red', 'blue', 'green',
-                                                    'orange', 'black', 'yellow',
-                                                    'white'),
-                                spacer=0.05,
-                                gridlines=True,
-                                phr=(1.0, 1.0, 4.0),
-                                progeny_labels=None):
-    """
-    Creates a plot for each pedigree in the pedigree dict
-    :param parent_genotypes: an n x 2 array or a n x 1x 2 array that is squeez
-    :param gamete_haplotypes: an n x S x 2 array
-    :param inheritance_colors: colour scheme
-    :param spacer: gap between panels
-    :param phr: relative size of each panel
-    :return:
-    """
-
-    panel_heights = np.array(phr)/np.sum(phr) - spacer
-
-    selection = np.ones(parent_genotypes.shape[0], dtype='bool')
-    if not show_all:
-        selection = anhima.gt.is_het(parent_genotypes)
-
-    # downsample
-    if downsample is not None:
-        where = np.where(selection)[0]
-        idx = np.random.choice(where, downsample, replace=False)
-        toplot = np.zeros(selection.shape, dtype='bool')
-        toplot[idx] = True
-        print 'Downsampling from {0} to {1} for plotting'.format(str(
-            selection.sum()), str(downsample))
-    else:
-        toplot = selection
-
-    print "Plotting {0} variants".format(toplot.sum())
-
-    parent = np.compress(toplot, parent_genotypes, axis=0)
-
-    pcolormesh_args = None
-    if gridlines:
-        pcolormesh_args = {'edgecolors': 'black'}
-
-    # NB: critical assumption of genotypes here
-    haplotypes = np.compress(toplot, gamete_haplotypes, axis=0)
-    positions = np.compress(selection, positions, axis=0)
-
-    # Again assumption of correct location of parents in dict
-    inheritance = anhima.ped.diploid_inheritance(parent, haplotypes)
-
-    axes = [(0, n*spacer + np.sum(panel_heights[:n]),
-             1, panel_heights[n]) for n in range(np.size(panel_heights))]
-
-    fig, ax = plt.subplots(figsize=(12, 8))
-
-    if progeny_labels is None:
-        progeny_labels = [''] * gamete_haplotypes.shape[1]
-    else:
-        progeny_labels.reverse()
-
-    ax = fig.add_axes(axes.pop())
-    anhima.gt.plot_discrete_calldata(inheritance,
-                                     colors=inheritance_colors,
-                                     labels=progeny_labels,
-                                     states=range(1, 8),
-                                     ax=ax,
-                                     pcolormesh_kwargs=pcolormesh_args)
-
-    ax = fig.add_axes(axes.pop())
-    try:
-        anhima.loc.plot_variant_locator(positions,
-                                        step=toplot.sum()/100,
-                                        ax=ax,
-                                        flip=False)
-    except ValueError:
-        pass
-
-    # (left, bottom, width, height)
-    ax = fig.add_axes(axes.pop())
-    try:
-        anhima.loc.plot_windowed_variant_density(positions,
-                                                 window_size=1e5,
-                                                 ax=ax)
-    except ValueError:
-        pass
-
-    if filename is not None:
-        plt.savefig(filename, bbox_inches='tight')
-    return ax
+    xx = Counter(samples)
+    return np.array(map(xx.get, sample_names))
 
 
 def read_pedigree_table(path, pedigree_id_col='cross', status_id_col='role',
@@ -608,15 +218,6 @@ def get_error_likelihood(parental_genotypes, progeny_genotypes,
 
         res[i] = memo_hash[key]
     return res
-
-
-def get_consecutive_true(a):
-    if a.sum() == 0:
-        return 0
-    else:
-        return np.diff(np.where(np.concatenate(([a[0]],
-                                                a[:-1] != a[1:],
-                                                [True])))[0])[::2].max()
 
 
 def mask_2d(a, c, threshold=0, value=False):
