@@ -9,7 +9,14 @@ pyenv: /home/njh/pyenv/science/bin/python
 bin_dir: /home/njh/git/phasing/bin
 ped_file: /home/njh/git/ag-crosses/meta/tbl_sample_ped_ag1k.txt
 merlin_ped_file: /home/njh/git/ag-crosses/meta/merlin_ped_ag1k.ped
-outdir: /data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing/phase1.AR2/callsets/autosome
+cluster_d: /data/anopheles/ag1000g/data/1000g_09_13/evaluation/phasing
+local_d: /home/njh/sync
+root_d: phase1.AR3/callsets
+
+# phasing run_ids
+# q50 & thinning = 20
+gs_phasing_runs: {3R: ShapeIt_7F580021, 3L: ShapeIt_097C63E2, 2R: ShapeIt_877AB578, 2L: ShapeIt_72B120A4}
+ar3_phasing_runs: {3R: ShapeIt_A27AC884, 3L: ShapeIt_9FA27328, 2R: ShapeIt_38EAF7BC, 2L: ShapeIt_5A3FE779}
 
 # AR3 callset
 ar3_callset: /data/coluzzi/ag1000g/data/phase1/release/AR3/variation/main
