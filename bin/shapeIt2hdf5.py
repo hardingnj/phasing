@@ -17,7 +17,7 @@ parser.add_argument('haplotypes', help='haplotypes file')
 parser.add_argument('samples', help='samples file')
 
 parser.add_argument('-c', '--chunksize', dest='chunk_size', action='store',
-                    type=int, default=1e5,
+                    type=int, default=1e4,
                     help='Number of lines to read at once from file')
 
 parser.add_argument('-z', '--compression', dest='comp_level', action='store',
