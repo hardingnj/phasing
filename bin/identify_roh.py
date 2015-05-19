@@ -9,6 +9,7 @@ import numpy as np
 import anhima
 import argparse
 import time
+import hmmlearn
 from hmmlearn import hmm
 import re
 
@@ -51,7 +52,7 @@ assert check.match(args.input), \
     "Input file does not have format string of {chrom}"
 
 
-def predict_roh_state(model, ind_genotype, pos, accessible, chrom):
+def predict_roh_state(model, ind_genotype, pos, accessible, label="unk"):
 
     # assume non-included pos are homozygous reference
     assert ind_genotype.shape[0] == pos.size
@@ -59,13 +60,13 @@ def predict_roh_state(model, ind_genotype, pos, accessible, chrom):
     heterozygosity = anhima.gt.is_het(ind_genotype)
     observations = np.zeros(accessible.size, dtype='int')
     for i in np.compress(heterozygosity, pos):
-        observations[i] = 1
+        observations[i - 1] = 1
 
     for i in np.where(~accessible)[0]:
-        observations[i] = 2
+        observations[i - 1] = 2
 
     predictions = model.predict(obs=observations)
-    print('Predictions complete for {0}:'.format(chrom))
+    print('Predictions complete for {0}:'.format(label))
     print('{0}% ROH'.format(100*np.mean(predictions == 0)))
     print('{0}% Normal'.format(100*np.mean(predictions == 1)))
 
@@ -83,7 +84,8 @@ def get_state_windows(predicted_state, state=0):
 
     roh = x.reshape(-1, 2)
     print("{0} distinct windows of state={1}".format(roh.shape[0], state))
-    return roh
+    # correct for fact that pos 1 is in index 0.
+    return roh + 1
 
 
 def calculate_windows(contig):
@@ -139,7 +141,7 @@ def calculate_windows(contig):
     genotype = fh['calldata']['genotype'][:, idx]
 
     pred, obs = predict_roh_state(roh_hmm, genotype, positions,
-                                  is_accessible, chrom=contig)
+                                  is_accessible, label=contig)
 
     #inaccessible_windows = get_state_windows(obs, state=2)
     homozygous_windows = get_state_windows(pred, state=0)
@@ -150,7 +152,13 @@ def calculate_windows(contig):
 with open(args.output, "w") as out:
     for k, v in vars(args).iteritems():
         print("# {0}: {1}".format(k, v), file=out)
-    print("# VERSION: " + ph.__version__, file=out)
+    print("# v. phasing: " + ph.__version__, file=out)
+    print("# v. h5py: " + h5py.__version__, file=out)
+    print("# v. numpy: " + np.__version__, file=out)
+    print("# v. anhima: " + anhima.__version__, file=out)
+    print("# v. argparse: " + argparse.__version__, file=out)
+    print("# v. hmmlearn: " + hmmlearn.__version__, file=out)
+    print("# v. re: " + re.__version__, file=out)
 
 for chrom in args.chrom:
     homozygous = calculate_windows(chrom)
