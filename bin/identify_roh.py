@@ -3,7 +3,6 @@ from __future__ import print_function
 
 __author__ = 'Nicholas Harding'
 
-import re
 import phasing as ph
 import h5py
 import numpy as np
@@ -11,26 +10,48 @@ import anhima
 import argparse
 import time
 from hmmlearn import hmm
+import re
+
+check = re.compile(".+\{chrom\}.+")
 
 start_time = time.time()
 chunk_size = 2e5
 parser = argparse.ArgumentParser(
     description='Tool to identify runs of homozygosity from sequence data')
 
-parser.add_argument('input', help='input hdf5 file')
+# files:
+parser.add_argument('input', help='input hdf5 filestem')
 parser.add_argument('output', help='output file')
-
-parser.add_argument('--sample', '-S', action='store', default=None,
-                    dest='sample', help='Which sample to evaluate.')
-parser.add_argument('--chr', '-C', action='store', default=None,
-                    dest='chrom', help='Which contig')
 parser.add_argument('--accessibility', '-A', action='store', default=None,
-                    dest='accessibility', help='Accessibility h5')
+                    dest='accessibility', help='Accessibility h5',
+                    required=True)
+
+# data:
+parser.add_argument('--sample', '-S', action='store', default=None,
+                    dest='sample', required=True,
+                    help='Which sample to evaluate.')
+parser.add_argument('--chr', '-C', nargs='+',
+                    default=["2L", "2R", "3L", "3R", "X"],
+                    dest='chrom', help='Which contig to model')
+
+# parameters
+parser.add_argument('--het_roh', '-J', action='store', default=None,
+                    dest='p_het_roh', required=True, type=float,
+                    help='Probability of a het in a run of homozygozity.')
+parser.add_argument('--het_norm', '-K', action='store', default=None,
+                    dest='p_het_norm', required=True, type=float,
+                    help='Probability of a het in a run of non-homozygozity')
+parser.add_argument('--transition', '-T', action='store', default=0.001,
+                    type=float, dest='transition',
+                    help='Transition probability of model')
 
 args = parser.parse_args()
 
+assert check.match(args.input), \
+    "Input file does not have format string of {chrom}"
 
-def predict_roh_state(model, ind_genotype, pos, accessible):
+
+def predict_roh_state(model, ind_genotype, pos, accessible, chrom):
 
     # assume non-included pos are homozygous reference
     assert ind_genotype.shape[0] == pos.size
@@ -44,7 +65,7 @@ def predict_roh_state(model, ind_genotype, pos, accessible):
         observations[i] = 2
 
     predictions = model.predict(obs=observations)
-    print('Predictions complete:')
+    print('Predictions complete for {0}:'.format(chrom))
     print('{0}% ROH'.format(100*np.mean(predictions == 0)))
     print('{0}% Normal'.format(100*np.mean(predictions == 1)))
 
@@ -64,77 +85,78 @@ def get_state_windows(predicted_state, state=0):
     print("{0} distinct windows of state={1}".format(roh.shape[0], state))
     return roh
 
-# load files
-fh = h5py.File(args.input, "r")[args.chrom]
-acc = h5py.File(args.accessibility, "r")[args.chrom]
 
-is_accessible = acc['is_accessible'][:]
+def calculate_windows(contig):
+    # this is the main function: given a chrom and parameters, it computes the
+    # likely ROH using an HMM model.
 
-# data
-samples = fh["samples"][:]
-positions = fh['variants']['POS'][:]
+    snps_fn = args.input.format(chrom=contig)
+    print(snps_fn)
+    fh = h5py.File(snps_fn, "r")[contig]
+    acc = h5py.File(args.accessibility, "r")[contig]
 
-# define model:
-### 2 state model, 3 observable
-# 0: ROH
-# 1: normal
-# 2: inaccessible
+    is_accessible = acc['is_accessible'][:]
 
-# start probability
-start_prob = np.array([0.5, 0.5])
+    # data
+    samples = fh["samples"][:]
+    positions = fh['variants']['POS'][:]
 
-# transition probabilty:
-trans_p = 0.001
+    # define model:
+    ### 2 state model, 3 observable
+    # 0: ROH
+    # 1: normal
+    # 2: inaccessible
 
-# transition between ROH and regular
-transitions = np.array([[1 - trans_p, trans_p],
-                        [trans_p, 1 - trans_p]])
+    # start probability
+    start_prob = np.array([0.5, 0.5])
 
-# probability of oberving a het in ROH vs reg   ularly in an accessible region
-p_het_roh = 1e-5
-p_het_norm = 5e-3
+    # transition probabilty:
+    trans_p = args.transition
 
-# probability of inaccessible
-p_inacess = is_accessible.mean()
+    # transition between ROH and regular
+    transitions = np.array([[1 - trans_p, trans_p],
+                            [trans_p, 1 - trans_p]])
 
-confusion = np.array([[(1 - p_inacess) * (1 - p_het_roh),
-                       (1 - p_inacess) * p_het_roh,
-                       p_inacess],
-                      [(1 - p_inacess) * (1 - p_het_norm),
-                       (1 - p_inacess) * p_het_norm,
-                       p_inacess]])
+    # probability of inaccessible
+    p_inacess = is_accessible.mean()
 
-roh_hmm = hmm.MultinomialHMM(n_components=2)
+    confusion = np.array([[(1 - p_inacess) * (1 - args.p_het_roh),
+                           (1 - p_inacess) * args.p_het_roh,
+                           p_inacess],
+                          [(1 - p_inacess) * (1 - args.p_het_norm),
+                           (1 - p_inacess) * args.p_het_norm,
+                           p_inacess]])
 
-roh_hmm.n_symbols_ = 3
-roh_hmm.startprob_ = start_prob
-roh_hmm.transmat_ = transitions
-roh_hmm.emissionprob_ = confusion
+    # initialize HMM
+    roh_hmm = hmm.MultinomialHMM(n_components=2)
 
-idx = samples.tolist().index(args.sample)
-genotype = fh['calldata']['genotype'][:, idx]
+    roh_hmm.n_symbols_ = 3
+    roh_hmm.startprob_ = start_prob
+    roh_hmm.transmat_ = transitions
+    roh_hmm.emissionprob_ = confusion
 
-pred, obs = predict_roh_state(roh_hmm,
-                              genotype,
-                              positions,
-                              is_accessible)
+    idx = samples.tolist().index(args.sample)
+    genotype = fh['calldata']['genotype'][:, idx]
 
-inaccessible_windows = get_state_windows(obs, state=2)
-homozygous_windows = get_state_windows(pred, state=0)
+    pred, obs = predict_roh_state(roh_hmm, genotype, positions,
+                                  is_accessible, chrom=contig)
 
+    #inaccessible_windows = get_state_windows(obs, state=2)
+    homozygous_windows = get_state_windows(pred, state=0)
+
+    return homozygous_windows
+
+# dump settings to file.
 with open(args.output, "w") as out:
     for k, v in vars(args).iteritems():
         print("# {0}: {1}".format(k, v), file=out)
     print("# VERSION: " + ph.__version__, file=out)
-    print("# TRANSITION: " + re.sub("\n", ",", np.str(roh_hmm.transmat_)),
-          file=out)
-    print("# EMISSION: " + re.sub("\n", ",", np.str(roh_hmm.emissionprob_)),
-          file=out)
-    print("# STARTPROB: " + re.sub("\n", ",", np.str(roh_hmm.startprob_)),
-          file=out)
 
-    for w in homozygous_windows:
-        print("\t".join(w.astype('str').tolist()), file=out)
+for chrom in args.chrom:
+    homozygous = calculate_windows(chrom)
+    with open(args.output, "a") as out:
+        for w in homozygous:
+            print("\t".join([chrom] + w.astype('str').tolist()), file=out)
 
 print("---------------------------")
 print("Completed in {0} minutes".format((time.time() - start_time)/60))
