@@ -62,7 +62,7 @@ def predict_roh_state(model, ind_genotype, pos, accessible, label="unk"):
     for i in np.compress(heterozygosity, pos):
         observations[i - 1] = 1
 
-    for i in np.where(~accessible)[0]:
+    for i in np.where(np.invert(accessible))[0]:
         observations[i - 1] = 2
 
     predictions = model.predict(obs=observations)
