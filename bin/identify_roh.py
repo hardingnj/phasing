@@ -73,16 +73,24 @@ def predict_roh_state(model, ind_genotype, pos, accessible, label="unk"):
     return predictions, observations
 
 
+# This function is slightly hokey. Relies on there being > 1 of a type.
 def get_state_windows(predicted_state, state=0):
 
-    x = np.where(np.diff(predicted_state == state))[0]
+    assert isinstance(predicted_state, np.ndarray), \
+        "get_state_windows expects an ndarray"
+    wh = np.where(predicted_state == state)[0]
+    assert wh.size > 1, "Must have more than 1 value to be considered interval"
 
-    if predicted_state[0] == state:
-        x = np.concatenate([[0], x])
-    if predicted_state[-1] == state:
-        x = np.concatenate([x, [predicted_state.size - 1]])
+    intervals = list()
+    iv_start = wh[0]
 
-    roh = x.reshape(-1, 2)
+    for i, pos in enumerate(wh[1:]):
+        if (pos - wh[i]) > 1:
+            intervals.append([iv_start, wh[i]])
+            iv_start = pos
+    intervals.append([iv_start, pos])
+
+    roh = np.array(intervals)
     print("{0} distinct windows of state={1}".format(roh.shape[0], state))
     # correct for fact that pos 1 is in index 0.
     return roh + 1
