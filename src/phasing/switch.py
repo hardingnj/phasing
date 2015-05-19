@@ -10,9 +10,9 @@ from anhima.gt import is_het, is_hom_alt, is_hom_ref
 
 
 def check_equivalency(a, b):
-    assert a.ndim == b.ndim == 3
+    assert a.ndim == b.ndim == 2
     assert np.array_equal(a.shape, b.shape)
-    assert np.array_equal(a.sum(axis=2), b.sum(axis=2))
+    assert np.array_equal(a.sum(axis=1), b.sum(axis=1))
 
 
 def determine_haplotype_switch(geno_a, geno_b):
@@ -31,13 +31,13 @@ def determine_haplotype_switch(geno_a, geno_b):
 
     # check for equivalence
     check_equivalency(geno_a, geno_b)
-    return compute_allele_agreement(np.take(geno_a, 0, axis=2), geno_b)
+    return compute_allele_agreement(np.take(geno_a, 0, axis=1), geno_b)
 
 
 def compute_allele_agreement(hap, geno):
 
-    a = hap == np.take(geno, 0, axis=2)
-    b = hap == np.take(geno, 1, axis=2)
+    a = hap == np.take(geno, 0, axis=1)
+    b = hap == np.take(geno, 1, axis=1)
     # a = 0, b = 1, a & b == err, not a | b = 2.
 
     out = 4 - ((a + 1) * (b + 2))
