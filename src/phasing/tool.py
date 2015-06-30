@@ -104,4 +104,4 @@ class Tool():
 
         self.dump_parameters()
 
-        print sh.qsub(qsub_parameters + list(args) + [self.script_f])
+        print(sh.qsub(qsub_parameters + list(args) + [self.script_f]))

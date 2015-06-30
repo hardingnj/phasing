@@ -16,7 +16,7 @@ class TestMerlin(unittest.TestCase):
         random_array = np.random.choice((1, 2), 10000).reshape((-1, 2))
         switch_e, ignored, shape = phasing.utils.calculate_switch_error(
             random_array)
-        print switch_e
+        print(switch_e)
         self.assertItemsEqual(switch_e.shape, (2,))
         self.assertTrue(np.all(switch_e > 0))
 

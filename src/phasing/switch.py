@@ -91,11 +91,11 @@ def adjust_position_switch_array(pos_sw, tolerance=1):
     while True:
 
         loci = np.diff(pos_sw) <= tolerance
-        print "loci:", loci
+
         if not loci.any():
             break
         xx = np.where(loci)[0][0]
-        print "xx:", xx
+
         a[xx] = a[xx - 1]
     return pos_sw
 

@@ -49,7 +49,7 @@ def write_merlin(output_stem, genotypes, positions, samples, ped_tbl,
         try:
             assert gp != last_gp
         except AssertionError:
-            print pos, last_gp
+            print(pos, last_gp)
             Exception(AssertionError)
         map_fh.write("\t".join([chrom, marker, gp]) + "\n")
     map_fh.close()

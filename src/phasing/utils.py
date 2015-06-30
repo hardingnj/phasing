@@ -42,27 +42,6 @@ def create_sh_script(filename, commands=None, outfile=None):
     script.close()
 
 
-def calc_regions(size, nbins=20, overlap=0):
-
-    """
-    :param size: size of total region
-    :param nbins: number of regions
-    :param overlap: stagger
-    :return:
-    """
-    if overlap is None:
-        overlap = size/(nbins*20)
-    approx_size = 1 + size/nbins + overlap - (overlap/nbins)
-    print approx_size, overlap
-    regions = []
-
-    for i in range(nbins):
-        start = i*(approx_size-overlap) + 1
-        stop = start + approx_size
-        regions.append((start, stop))
-    return regions
-
-
 # may get moved to py_shapeit
 def parse_duohmm_genotype_error(fn, sample_names, threshold=0.5):
 
