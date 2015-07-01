@@ -12,7 +12,6 @@ from scipy.special import gammaln
 from collections import Counter
 import pandas as pd
 import hashlib
-is_het = anhima.gt.is_het
 
 
 def create_sh_script(filename, commands=None, outfile=None):

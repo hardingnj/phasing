@@ -1,7 +1,7 @@
 __author__ = 'Nicholas Harding'
 
 import numpy as np
-from anhima.gt import is_het, is_hom_alt, is_hom_ref
+import anhima
 #from anhima.ped import diploid_inheritance
 #from anhima.ped import diploid_mendelian_error_biallelic
 
@@ -57,8 +57,8 @@ def determine_inherited_allele(hap, geno, allow_mendelian_errors=False):
     """
 
     # check there are no inconsistencies ie 1 from 0/0.
-    mendel_incon = (is_hom_ref(geno) & (1 == hap)) | \
-                   (is_hom_alt(geno) & (0 == hap))
+    mendel_incon = (anhima.gt.is_hom_ref(geno) & (1 == hap)) | \
+                   (anhima.gt.is_hom_alt(geno) & (0 == hap))
 
     if not allow_mendelian_errors:
         assert not mendel_incon.any(), "Mendelian inconsistencies observed"
