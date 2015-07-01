@@ -82,7 +82,7 @@ with h5py.File(args.input, mode='r') as h5_handle:
                 msg = "The following {0} samples are excluded as they have a " \
                       "a consecutive missing gt run of >= {1} of all calls:" \
                     .format(str(np.sum(~ok_samples)), str(args.missingcutoff))
-                print msg
+                print(msg)
 
                 for sa, rt in zip(
                         np.compress(~ok_samples, samples).tolist(),

@@ -49,7 +49,7 @@ parser.add_argument('--likelihood', action='store_const', default=me,
 # to do: add option to only filter individual crosses.
 args = parser.parse_args()
 for arg, value in sorted(vars(args).items()):
-    print arg, ":", str(value)
+    print(arg, ":", str(value))
 
 data = h5py.File(args.input)
 pedigree, ped_table = ph.utils.read_pedigree_table(args.pedigree)
@@ -61,7 +61,7 @@ available_samples = data[args.contig]['samples'][:]
 
 for x in args.cross:
     bad_sites = list()
-    print 'Processing cross:', x
+    print('Processing cross:', x)
     assert np.in1d(pedigree[x]['parent'], available_samples).all(), \
         "not all parents are available for cross " + x
     assert np.in1d(pedigree[x]['progeny'], available_samples).all(), \
@@ -94,8 +94,8 @@ for x in args.cross:
         bad_sites.append(np.compress(errors, pos))
 
     bad_sites = np.concatenate(bad_sites)
-    print '{0:,} / {1:,} sites with errors found'.format(np.size(bad_sites),
-                                                         n_variants)
+    print('{0:,} / {1:,} sites with errors found'.format(np.size(bad_sites),
+                                                         n_variants))
     np.savez_compressed(os.path.join(args.outdir, fn), positions=bad_sites)
 
 print("--- Completed: {0:.4} seconds ---".format(time.time() - start_time))

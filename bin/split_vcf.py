@@ -25,7 +25,7 @@ output_fn = args.out_dir + "/{0}_{1}_{2}.vcf.gz".format(stem,
 input_fh = gzip.open(args.input, 'r')
 output_fh = gzip.open(output_fn, 'w-')
 
-print args.start, args.end
+print(args.start, args.end)
 for l in input_fh:
     if comment.match(l):
         output_fh.write(l)

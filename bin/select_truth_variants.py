@@ -63,7 +63,7 @@ parser.add_argument('--chr', '-C', action='store', default=None, dest='contig',
 # to do: add option to only filter individual crosses.
 args = parser.parse_args()
 for arg, value in sorted(vars(args).items()):
-    print arg, ":", str(value)
+    print(arg, ":", str(value))
 
 data = h5py.File(args.input)
 
@@ -151,8 +151,8 @@ keep = hets.any(axis=1) & \
 
 count_hets = hets.sum(axis=1)
 
-print '{0}/{1} sites meet all requirements of quality and are ' \
-      'segregating'.format(np.sum(keep), np.size(keep))
+print('{0}/{1} sites meet all requirements of quality and are ' \
+      'segregating'.format(np.sum(keep), np.size(keep)))
 
 if args.baddir is not None:
     # simply add all bad sites
@@ -169,9 +169,9 @@ if args.baddir is not None:
 
     # whether pos is in bad pos list
     error, _ = anhima.loc.locate_positions(position, bad_positions)
-    print '{0} sites blacklisted due to genotyping errors'.format(error.sum())
-    print '{0} sites removed with {1} remaining'.format(np.sum(error & keep),
-                                                        np.sum(~error & keep))
+    print('{0} sites blacklisted due to genotyping errors'.format(error.sum()))
+    print('{0} sites removed with {1} remaining'.format(np.sum(error & keep),
+                                                        np.sum(~error & keep)))
 
     keep = keep & ~error
 
@@ -189,9 +189,9 @@ for i in range(not_thinned.size - 1):
     else:
         not_thinned[i+1] = False
 
-print "Thinning has removed {0} sites".format(np.sum(keep) - not_thinned.sum())
+print("Thinning has removed {0} sites".format(np.sum(keep) - not_thinned.sum()))
 keep = not_thinned
-print "In total {0}/{1} sites retained".format(np.sum(keep), np.size(keep))
+print("In total {0}/{1} sites retained".format(np.sum(keep), np.size(keep)))
 
 output_h5.create_group('/{0}'.format(args.contig))
 output_h5.create_group('/{0}/variants'.format(args.contig))
