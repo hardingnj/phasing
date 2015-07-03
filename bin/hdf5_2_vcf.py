@@ -89,7 +89,8 @@ with h5py.File(args.input, mode='r') as h5_handle:
                         np.compress(~ok_samples, missing_rates).tolist()):
                     print(sa + ": " + str(rt))
 
-                samples = tuple(np.compress(ok_samples, samples).tolist())
+                samples = [s.decode()
+                           for s in np.compress(ok_samples, samples)]
             else:
                 print("All samples meet the missingness run threshold ({0})"
                       .format(str(args.missingcutoff)))
