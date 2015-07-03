@@ -173,7 +173,7 @@ def get_error_likelihood(parental_genotypes, progeny_genotypes,
     classification = return_classification(parental_genotypes)
     assert classification.ndim == 1
     res = np.zeros(classification.size)
-    for i in xrange(classification.size):
+    for i in range(classification.size):
         if classification[i] == 0:
             continue
 
@@ -210,3 +210,11 @@ def mask_3d(a, c, threshold=0, value=(-1, -1)):
     cp_a = a.copy()
     cp_a[mask] = value
     return cp_a, mask
+
+
+def get_consecutive_true(a):
+    if a.sum() == 0:
+        return 0
+    else:
+        return np.diff(np.where(
+            np.concatenate(([a[0]], a[:-1] != a[1:], [True])))[0])[::2].max()
