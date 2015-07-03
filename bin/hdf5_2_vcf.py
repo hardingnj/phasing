@@ -71,11 +71,12 @@ with h5py.File(args.input, mode='r') as h5_handle:
                 consecutive_miss = phasing.utils.get_consecutive_true(
                     missing_genotypes)
                 miss_rate_i = consecutive_miss/float(missing_genotypes.size)
-                print "Missing rate of", s, ':', "{:.8f}".format(miss_rate_i), \
-                    "({0}/{1})".format(i+1, len(samples))
+                print("Missing rate of", s, ':',
+                      "{:.8f}".format(miss_rate_i),
+                      "({0}/{1})".format(i+1, len(samples)))
                 missing_rates[i] = miss_rate_i
 
-            print "Rate max:", missing_rates.max()
+            print("Rate max:", missing_rates.max())
             ok_samples = missing_rates < args.missingcutoff
 
             if np.any(~ok_samples):
@@ -87,12 +88,12 @@ with h5py.File(args.input, mode='r') as h5_handle:
                 for sa, rt in zip(
                         np.compress(~ok_samples, samples).tolist(),
                         np.compress(~ok_samples, missing_rates).tolist()):
-                    print sa + ": " + str(rt)
+                    print(sa + ": " + str(rt))
 
                 samples = tuple(np.compress(ok_samples, samples).tolist())
             else:
-                print "All samples meet the missingness run threshold ({0})" \
-                    .format(str(args.missingcutoff))
+                print("All samples meet the missingness run threshold ({0})"
+                      .format(str(args.missingcutoff)))
 
             if args.pedigree is not None:
                 phasing.utils.create_samples_file(args.pedigree,
@@ -132,8 +133,8 @@ with h5py.File(args.input, mode='r') as h5_handle:
                         f.write(line + "\n")
 
                     except TypeError:
-                        print pos
-                        print ref
-                        print alt
-                        print gt
+                        print(pos)
+                        print(ref)
+                        print(alt)
+                        print(gt)
                         raise TypeError("Some data wasn't of the correct type.")
