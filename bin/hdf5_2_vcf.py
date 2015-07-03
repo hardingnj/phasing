@@ -7,7 +7,6 @@ __author__ = 'Nicholas Harding'
 
 import argparse
 import h5py
-from itertools import izip
 import anhima
 import numpy as np
 import phasing
@@ -116,8 +115,8 @@ with h5py.File(args.input, mode='r') as h5_handle:
                 genotypes = np.compress(ok_samples, genotypes, axis=1)
                 multiple_alts = alternate.ndim > 1
 
-                for pos, ref, alt, gt in izip(positions, reference,
-                                              alternate, genotypes):
+                for pos, ref, alt, gt in zip(positions, reference,
+                                             alternate, genotypes):
                     filterstring = 'PASS'
                     # This line filters variants where ALL genotypes are missing
                     if not args.keepmissing and np.all(gt == -1):
