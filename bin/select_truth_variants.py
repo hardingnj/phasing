@@ -86,7 +86,7 @@ if not os.path.isdir(output_dir):
 
 fn = os.path.join(output_dir, args.filestem + '.h5')
 output_h5 = h5py.File(fn, 'w-')
-print "Will output to:", fn
+print("Will output to:", fn)
 
 for x in args.cross:
     pedigree[x]['parent_idx'] = [samples.index(s)
@@ -158,7 +158,7 @@ if args.baddir is not None:
     # simply add all bad sites
     bad_positions = list()
     for x in args.cross:
-        print 'Processing cross:', x
+        print('Processing cross:', x)
         for v in ['li', 'me']:
             fn = os.path.join(args.baddir,
                               "_".join([x, args.contig, v, 'badsites.npz']))

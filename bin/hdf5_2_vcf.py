@@ -19,7 +19,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument('input', help='input hdf5 file')
 parser.add_argument('output', help='output file stem')
 
-parser.add_argument('--keepmissing', '-M', action='store_true', default=False)
+parser.add_argument('--keepmissing', '-M', action='store_true', default=False,
+                    dest='keepmissing')
 parser.add_argument('--cutoff', '-C', action='store', default=0.04,
                     dest='missingcutoff', type=float,
                     help='Maximum missing GTs tolerated in a sample')
@@ -32,27 +33,25 @@ args = parser.parse_args()
 with h5py.File(args.input, mode='r') as h5_handle:
     with open(args.output + '.vcf', 'w') as f:
 
-        lookup = {-1: './.', 0: '0/0', 1: '0/1', 2: '1/1'}
+        print(r'##fileformat=VCFv4.1', file=f)
+        print(r'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
+              file=f)
+        print(r'##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count'
+              r'in genotypes, for each ALT allele, in the same order as'
+              r'listed">', file=f)
 
-        f.write(r'##fileformat=VCFv4.1' + "\n")
-        f.write(r'##FORMAT=<ID=GT,Number=1,Type=String,'
-                r'Description="Genotype">' + "\n")
-        f.write(r'##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count'
-                r'in genotypes, for each ALT allele, in the same order as'
-                r'listed">' + "\n")
+        print(r'##contig=<ID=2L,length=49364325>', file=f)
+        print(r'##contig=<ID=2R,length=61545105>', file=f)
+        print(r'##contig=<ID=3L,length=41963435>', file=f)
+        print(r'##contig=<ID=3R,length=53200684>', file=f)
+        print(r'##contig=<ID=UNKN,length=42389979>', file=f)
+        print(r'##contig=<ID=X,length=24393108>', file=f)
+        print(r'##contig=<ID=Y_unplaced,length=237045>', file=f)
+        print(r'##reference=file:///data/anopheles/ag1000g/data/genome/AgamP3'
+              r'/Anopheles-gambiae-PEST_CHROMOSOMES_AgamP3.fa', file=f)
 
-        f.write(r'##contig=<ID=2L,length=49364325>' + "\n")
-        f.write(r'##contig=<ID=2R,length=61545105>' + "\n")
-        f.write(r'##contig=<ID=3L,length=41963435>' + "\n")
-        f.write(r'##contig=<ID=3R,length=53200684>' + "\n")
-        f.write(r'##contig=<ID=UNKN,length=42389979>' + "\n")
-        f.write(r'##contig=<ID=X,length=24393108>' + "\n")
-        f.write(r'##contig=<ID=Y_unplaced,length=237045>' + "\n")
-        f.write(r'##reference=file:///data/anopheles/ag1000g/data/genome/AgamP3'
-                r'/Anopheles-gambiae-PEST_CHROMOSOMES_AgamP3.fa' + "\n")
-
-        reqd = ('#CHROM', 'POS', 'ID', 'REF', 'ALT',
-                'QUAL', 'FILTER', 'INFO', 'FORMAT')
+        reqd = ['#CHROM', 'POS', 'ID', 'REF', 'ALT',
+                'QUAL', 'FILTER', 'INFO', 'FORMAT']
 
         # rememeber to act on all 1st level keys!
         # does not support multiple chromosomes currently!
@@ -60,47 +59,51 @@ with h5py.File(args.input, mode='r') as h5_handle:
         assert len(h5_handle.keys()) <= 1
         for k in h5_handle.keys():
 
-            samples = tuple(h5_handle[k]['samples'][:].tolist())
+            samples = [s.decode() for s in h5_handle[k]['samples'][:].tolist()]
             missing_rates = np.zeros(len(samples))
+            ok_samples = np.ones(len(samples), dtype="bool")
 
-            for i, s in enumerate(samples):
-                missing_genotypes = anhima.gt.is_missing(
-                    h5_handle[k]['calldata']['genotype'][:, i].reshape(
-                        (-1, 1, 2))).squeeze()
-                consecutive_miss = phasing.utils.get_consecutive_true(
-                    missing_genotypes)
-                miss_rate_i = consecutive_miss/float(missing_genotypes.size)
-                print("Missing rate of", s, ':',
-                      "{:.8f}".format(miss_rate_i),
-                      "({0}/{1})".format(i+1, len(samples)))
-                missing_rates[i] = miss_rate_i
+            if not args.keepmissing:
 
-            print("Rate max:", missing_rates.max())
-            ok_samples = missing_rates < args.missingcutoff
+                for i, s in enumerate(samples):
+                    missing_genotypes = anhima.gt.is_missing(
+                        h5_handle[k]['calldata']['genotype'][:, i].reshape(
+                            (-1, 1, 2))).squeeze()
+                    consecutive_miss = phasing.utils.get_consecutive_true(
+                        missing_genotypes)
+                    miss_rate_i = consecutive_miss/float(missing_genotypes.size)
+                    print("Missing rate of", s, ':',
+                          "{:.8f}".format(miss_rate_i),
+                          "({0}/{1})".format(i+1, len(samples)))
+                    missing_rates[i] = miss_rate_i
 
-            if np.any(~ok_samples):
-                msg = "The following {0} samples are excluded as they have a " \
-                      "a consecutive missing gt run of >= {1} of all calls:" \
-                    .format(str(np.sum(~ok_samples)), str(args.missingcutoff))
-                print(msg)
+                print("Rate max:", missing_rates.max())
+                ok_samples = missing_rates < args.missingcutoff
 
-                for sa, rt in zip(
-                        np.compress(~ok_samples, samples).tolist(),
-                        np.compress(~ok_samples, missing_rates).tolist()):
-                    print(sa + ": " + str(rt))
+                if np.any(~ok_samples):
+                    msg = "The following {0} samples are excluded as they " \
+                          "have a consecutive missing gt run of >= {1} of " \
+                          "all calls:".format(str(np.sum(~ok_samples)),
+                                              str(args.missingcutoff))
+                    print(msg)
 
-                samples = [s.decode()
-                           for s in np.compress(ok_samples, samples)]
-            else:
-                print("All samples meet the missingness run threshold ({0})"
-                      .format(str(args.missingcutoff)))
+                    for sa, rt in zip(
+                            np.compress(~ok_samples, samples).tolist(),
+                            np.compress(~ok_samples, missing_rates).tolist()):
+                        print(sa + ": " + str(rt))
+
+                    samples = [s.decode() for s in np.compress(
+                        ok_samples, samples).tolist()]
+                else:
+                    print("All samples meet the missingness run threshold ({0})"
+                          .format(str(args.missingcutoff)))
 
             if args.pedigree is not None:
                 phasing.utils.create_samples_file(args.pedigree,
                                                   args.output + '.sample',
                                                   samples)
 
-            f.write("\t".join(reqd + samples) + "\n")
+            print("\t".join(reqd + samples), file=f)
 
             number_variants = h5_handle[k]['variants']['POS'][:].size
             chunks = np.arange(1, number_variants + chunk_size, chunk_size)
@@ -111,8 +114,7 @@ with h5py.File(args.input, mode='r') as h5_handle:
                 positions = h5_handle[k]['variants']['POS'][sl]
                 reference = h5_handle[k]['variants']['REF'][sl]
                 alternate = h5_handle[k]['variants']['ALT'][sl]
-                genotypes = anhima.gt.as_012(
-                    h5_handle[k]['calldata']['genotype'][sl])
+                genotypes = h5_handle[k]['calldata']['genotype'][sl]
                 genotypes = np.compress(ok_samples, genotypes, axis=1)
                 multiple_alts = alternate.ndim > 1
 
@@ -127,9 +129,13 @@ with h5py.File(args.input, mode='r') as h5_handle:
                     if multiple_alts:
                         alt = ",".join(x for x in alt if x != '')
 
+                    ref = ref.decode()
+                    alt = alt.decode()
                     try:
-                        line = "\t".join([k, str(pos), '.', ref, alt, '0', '.',
-                                          '.', 'GT'] + [lookup[s] for s in gt])
+                        line = "\t".join(
+                            [k, str(pos), '.', ref, alt, '0', '.', '.', 'GT'] +
+                            list(map(lambda x: '/'.join(map(str, x)).replace("-1", "."), gt)))
+
                         f.write(line + "\n")
 
                     except TypeError:
