@@ -42,7 +42,7 @@ parser.add_argument('--het_roh', '-J', action='store', default=None,
 parser.add_argument('--het_norm', '-K', action='store', default=None,
                     dest='p_het_norm', required=True, type=float,
                     help='Probability of a het in a run of non-homozygozity')
-parser.add_argument('--transition', '-T', action='store', default=0.001,
+parser.add_argument('--transition', '-T', action='store', default=1e-6,
                     type=float, dest='transition',
                     help='Transition probability of model')
 
@@ -84,6 +84,7 @@ def get_state_windows(predicted_state, state=0):
     intervals = list()
     iv_start = wh[0]
 
+    pos = None
     for i, pos in enumerate(wh[1:]):
         if (pos - wh[i]) > 1:
             intervals.append([iv_start, wh[i]])
@@ -128,14 +129,14 @@ def calculate_windows(contig):
                             [trans_p, 1 - trans_p]])
 
     # probability of inaccessible
-    p_inacess = is_accessible.mean()
+    p_accessible = is_accessible.mean()
 
-    confusion = np.array([[(1 - p_inacess) * (1 - args.p_het_roh),
-                           (1 - p_inacess) * args.p_het_roh,
-                           p_inacess],
-                          [(1 - p_inacess) * (1 - args.p_het_norm),
-                           (1 - p_inacess) * args.p_het_norm,
-                           p_inacess]])
+    emission_mx = np.array([[p_accessible * (1 - args.p_het_roh),
+                           p_accessible * args.p_het_roh,
+                           1 - p_accessible],
+                          [p_accessible * (1 - args.p_het_norm),
+                           p_accessible * args.p_het_norm,
+                           1 - p_accessible]])
 
     # initialize HMM
     roh_hmm = hmm.MultinomialHMM(n_components=2)
@@ -143,9 +144,9 @@ def calculate_windows(contig):
     roh_hmm.n_symbols_ = 3
     roh_hmm.startprob_ = start_prob
     roh_hmm.transmat_ = transitions
-    roh_hmm.emissionprob_ = confusion
+    roh_hmm.emissionprob_ = emission_mx
 
-    idx = samples.tolist().index(args.sample)
+    idx = samples.tolist().index(args.sample.encode())
     genotype = fh['calldata']['genotype'][:, idx]
 
     pred, obs = predict_roh_state(roh_hmm, genotype, positions,
@@ -158,7 +159,7 @@ def calculate_windows(contig):
 
 # dump settings to file.
 with open(args.output, "w") as out:
-    for k, v in vars(args).iteritems():
+    for k, v in vars(args).items():
         print("# {0}: {1}".format(k, v), file=out)
     print("# v. phasing: " + ph.__version__, file=out)
     print("# v. h5py: " + h5py.__version__, file=out)
