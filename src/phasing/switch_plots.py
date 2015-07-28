@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 def plot_hap_switches(block_tbl, het_positions, index_positions, filename=None,
-                      title="", color=('grey', 'red', 'blue')):
+                      title=None, color=('grey', 'red', 'blue')):
 
     """
     Creates a plot for each pedigree in the pedigree dict
@@ -55,7 +55,8 @@ def plot_hap_switches(block_tbl, het_positions, index_positions, filename=None,
     for i in range(1, len(yticks) - 1):
         yticks[i].label1.set_visible(False)
 
-    fig.suptitle(title, fontsize=18)
+    if title is not None:
+        fig.suptitle(title, fontsize=18)
 
     if filename is not None:
         plt.savefig(filename)
