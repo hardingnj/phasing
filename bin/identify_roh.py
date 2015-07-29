@@ -36,12 +36,11 @@ parser.add_argument('--chr', '-C', nargs='+',
                     dest='chrom', help='Which contig to model')
 
 # parameters
-parser.add_argument('--het_roh', '-J', action='store', default=None,
-                    dest='p_het_roh', required=True, type=float,
+parser.add_argument('--emission', '-X', action='store',
+                    default=[0.0001, 0.001, 0.015],
+                    dest='phet', required=True, type=float, nargs="+",
                     help='Probability of a het in a run of homozygozity.')
-parser.add_argument('--het_norm', '-K', action='store', default=None,
-                    dest='p_het_norm', required=True, type=float,
-                    help='Probability of a het in a run of non-homozygozity')
+
 parser.add_argument('--transition', '-T', action='store', default=1e-6,
                     type=float, dest='transition',
                     help='Transition probability of model')
@@ -68,7 +67,7 @@ def predict_roh_state(model, ind_genotype, pos, accessible, label="unk"):
     predictions = model.predict(obs=observations)
     print('Predictions complete for {0}:'.format(label))
     print('{0}% ROH'.format(100*np.mean(predictions == 0)))
-    print('{0}% Normal'.format(100*np.mean(predictions == 1)))
+    print('{0}% Normal'.format(100*np.mean(predictions >= 1)))
 
     return predictions, observations
 
@@ -97,6 +96,28 @@ def get_state_windows(predicted_state, state=0):
     return roh + 1
 
 
+def derive_emission_mx(prob, pa):
+    # one row per p in prob
+    # hom, het, unobserved
+    mx = [[(1-p) * (1-pa), p * (1-pa), pa] for p in prob]
+    mxe = np.array(mx)
+    assert mxe.shape == (prob.size, 3)
+    return mxe
+
+
+def derive_transition_mx(pr, nstates):
+    # this is a symmetric matrix
+    mx = np.zeros((nstates, nstates))
+    effective_tp = pr/(nstates-1)
+    for i in range(nstates):
+        for j in range(nstates):
+            if i == j:
+                mx[i, j] = 1 - pr
+            else:
+                mx[i, j] = effective_tp
+    return mx
+
+
 def calculate_windows(contig):
     # this is the main function: given a chrom and parameters, it computes the
     # likely ROH using an HMM model.
@@ -117,29 +138,25 @@ def calculate_windows(contig):
     # 0: ROH
     # 1: normal
     # 2: inaccessible
+    emission_px = np.array(args.phet)
+    emission_px.sort()
 
     # start probability
-    start_prob = np.array([0.5, 0.5])
+    start_prob = np.repeat(1/emission_px.size, emission_px.size)
 
     # transition probabilty:
     trans_p = args.transition
 
-    # transition between ROH and regular
-    transitions = np.array([[1 - trans_p, trans_p],
-                            [trans_p, 1 - trans_p]])
+    # transition between underlying states
+    transitions = derive_transition_mx(trans_p, emission_px.size)
 
     # probability of inaccessible
     p_accessible = is_accessible.mean()
 
-    emission_mx = np.array([[p_accessible * (1 - args.p_het_roh),
-                           p_accessible * args.p_het_roh,
-                           1 - p_accessible],
-                          [p_accessible * (1 - args.p_het_norm),
-                           p_accessible * args.p_het_norm,
-                           1 - p_accessible]])
+    emission_mx = derive_emission_mx(emission_px, p_accessible)
 
     # initialize HMM
-    roh_hmm = hmm.MultinomialHMM(n_components=2)
+    roh_hmm = hmm.MultinomialHMM(n_components=emission_px.size)
 
     roh_hmm.n_symbols_ = 3
     roh_hmm.startprob_ = start_prob
