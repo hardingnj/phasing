@@ -80,10 +80,10 @@ def get_state_windows(predicted_state, state=0):
     wh = np.where(predicted_state == state)[0]
     if wh.size == 0:
         # then there are no things of interest
-        return None
+        return np.empty(0)
     elif wh.size == 1:
         # the whole thing is one big thing of interest
-        return list(np.array([1, predicted_state.size]))
+        return np.array([1, predicted_state.size])
 
     intervals = list()
     iv_start = wh[0]
