@@ -78,7 +78,12 @@ def get_state_windows(predicted_state, state=0):
     assert isinstance(predicted_state, np.ndarray), \
         "get_state_windows expects an ndarray"
     wh = np.where(predicted_state == state)[0]
-    assert wh.size > 1, "Must have more than 1 value to be considered interval"
+    if wh.size == 0:
+        # then there are no things of interest
+        return None
+    elif wh.size == 1:
+        # the whole thing is one big thing of interest
+        return list(np.array([1, predicted_state.size]))
 
     intervals = list()
     iv_start = wh[0]
