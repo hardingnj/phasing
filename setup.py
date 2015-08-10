@@ -28,4 +28,5 @@ setup(
                  ],
     scripts=['bin/hdf5_2_vcf.py',
              'bin/select_truth_variants.py', 'bin/report_ME.py',
-             'bin/identify_roh.py'])
+             'bin/identify_roh.py',
+             'bin/evaluate_phasing_perf.py'])
