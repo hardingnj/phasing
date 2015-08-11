@@ -12,12 +12,9 @@ import argparse
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-import yaml
 import pandas as pd
-from intervaltree import IntervalTree, Interval
+from intervaltree import IntervalTree
 import allel
-import bcolz
 import anhima.gt as gt
 import anhima.loc as loc
 import phasing as ph
@@ -70,8 +67,8 @@ def plot_switch_errors(pos, switch_data, start=None, stop=None):
         stop = pos[-1]
 
     # find ratios of 1/2s
-    hets = (calldata > 0).sum(axis=1)
-    errs = (calldata == 2).sum(axis=1)
+    hets = np.sum(calldata > 0, axis=1)
+    errs = np.sum(calldata == 2, axis=1)
     bins = np.linspace(start, stop, int(pos.size/1000))
 
     midpoints = np.array([np.mean([x, y]) for x, y in zip(bins[:-1], bins[1:])])
@@ -91,15 +88,17 @@ def plot_switch_errors(pos, switch_data, start=None, stop=None):
                               states=(0, 1, 2), ax=ax)
 
     ax = plt.subplot2grid((8, 1), (6, 0), rowspan=1)
-    loc.plot_variant_locator(pos, step=pos.size/100, ax=ax, flip=False)
+    loc.plot_variant_locator(pos, step=pos.size/100, ax=ax,
+                             line_args={"c": "k"})
     ax.xaxis.set_ticklabels([])
 
     ax = plt.subplot2grid((8, 1), (7, 0), rowspan=1)
     ax.plot(midpoints, err_rate, 'r')
     ax.set_xlim((start, stop))
-    ul = ceil(10 * np.nanmax(err_rate))/10
+    ul = ceil(10 * float(np.nanmax(err_rate)))/10
     ax.set_ylim((0, ul))
     ax.set_yticks(np.arange(0, ul + 0.01, 0.1))
+    ax.grid(True)
     ax.set_ylabel("Switch error rate")
     ax.set_xlabel("Genomic position (bp)")
 
@@ -146,7 +145,8 @@ def evaluate_markers(start, markers, error_positions, window_size=2e5):
     return window_markers, errors
 
 
-def calculate_switch_distances(start_points, switch_data, window_size, roh_dict):
+def calculate_switch_distances(start_points, switch_data,
+                               window_size, roh_dict):
 
     # intial declatations
     mean_marker_dist = np.repeat(np.NaN, start_points.size)
@@ -180,10 +180,8 @@ def calculate_switch_distances(start_points, switch_data, window_size, roh_dict)
 
         total_distance = np.sum(distances)
 
-        n_markers = np.sum([np.size(p) - 1
-                            for p in positions.values()]).astype("int")
-
-        n_error = np.sum([np.sum(e) for e in errors.values()]).astype("int")
+        n_markers = int(np.sum([np.size(p) - 1 for p in positions.values()]))
+        n_error = int(np.sum([np.sum(e) for e in errors.values()]))
 
         max_p_err = beta.ppf(0.975, 1 + n_error, 1 + n_markers - n_error)
         min_p_err = beta.ppf(0.025, 1 + n_error, 1 + n_markers - n_error)
@@ -196,7 +194,6 @@ def calculate_switch_distances(start_points, switch_data, window_size, roh_dict)
         conf_switch_dist[i] = (mean_marker_d/min_p_err, mean_marker_d/max_p_err)
         marker_count[i] = n_markers
         error_count[i] = n_error
-        #print(n_error, n_markers, total_distance, mean_marker_d)
 
     return (mean_marker_dist, mean_switch_dist, conf_switch_dist,
             marker_count, error_count)
@@ -221,7 +218,7 @@ def draw_msd_across_genome(genome_pos, marker_dist, mean_switch_dist,
 
     ax.add_patch(poly)
     ax.grid(True)
-    ax.set_ylabel("Mean switch distance (bp)")
+    ax.set_ylabel("Distance (bp)")
     ax.set_xlabel("Genomic position (bp)")
     ax.set_yscale("log")
 
@@ -260,7 +257,8 @@ def switch_distances_tofile(path, mean_marker_d, mean_switch_d, conf_int, nmark,
     columns = "window", "mean marker dist", "mean switch dist", "CI 95%", \
               "n Errors", "n Markers"
 
-    swindows = ["{0}-{1}".format(int(x), int(y) - 1)
+    swindows = ["{0}-{1} Mb".format(np.round(x*1e-6, 2),
+                                    np.round((y-1)*1e-6, 2))
                 for x, y in zip(window_starts, window_starts + window_size)]
 
     ci = ["{0},{1}".format(np.round(x, 2), np.round(y, 2))
@@ -273,6 +271,7 @@ def switch_distances_tofile(path, mean_marker_d, mean_switch_d, conf_int, nmark,
     frame[columns[3]] = ci
     frame[columns[4]] = nerr
     frame[columns[5]] = nmark
+    frame["error rate"] = np.round(nerr/nmark, 4)
     frame.to_csv(path + ".txt", sep="\t", index=False)
     frame.to_latex(path + ".tex", index=False)
 
@@ -365,11 +364,7 @@ t_pos = test_fh[args.chrom]['variants']['POS'][:]
 keep_pos = np.in1d(t_pos, e_pos)
 t_gt = t_gt.compress(keep_pos, axis=0)
 
-# equally keep only the eval positions that are in the test set
-eval_keep_pos = np.in1d(e_pos, t_pos)
-e_gt = e_gt.compress(eval_keep_pos, axis=0)
-e_pos = np.compress(eval_keep_pos, e_pos)
-
+# conversely all eval MUST be in test set.
 assert e_gt.shape == t_gt.shape, ("Not same shape:", e_gt.shape, t_gt.shape)
 
 is_missing = e_gt.is_missing()

@@ -106,7 +106,7 @@ with h5py.File(args.input, mode='r') as h5_handle:
             print("\t".join(reqd + samples), file=f)
 
             number_variants = h5_handle[k]['variants']['POS'][:].size
-            chunks = np.arange(1, number_variants + chunk_size, chunk_size)
+            chunks = np.arange(0, number_variants + chunk_size, chunk_size)
             assert chunks.max() > number_variants
 
             for start, stop in zip(chunks[:-1], chunks[1:]):
