@@ -31,7 +31,7 @@ contig_lengths = {"2L": 49364325, "2R": 61545105,
 
 # utility function for plot_switch_errors,
 # classifies each position as het good, het bad or non informative.
-def determine_err_locs(positions, evaluated_positions, switches_indexes):
+def determine_err_locs(positions, evaluated_positions, switches_indexes ):
 
     position_switches = np.take(evaluated_positions, switches_indexes)
     result = np.zeros(positions.shape)
@@ -373,6 +373,7 @@ data = dict()
 
 for idx, sid in enumerate(sample_names):
 
+    # only consider hets in the evaluation set. ie exclude missing + homs
     hz = gt.is_het(e_gt[:, idx])
     sample_pos = np.compress(hz, e_pos)
     sample_gt = np.compress(hz, t_gt[:, idx], axis=0)
