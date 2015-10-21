@@ -26,7 +26,7 @@ setup(
                  'Programming Language :: Python',
                  'Topic :: Software Development :: Libraries :: Python Modules'
                  ],
-    scripts=['bin/hdf5_2_vcf.py',
+    scripts=['bin/hdf5_2_vcf.py', 'bin/split_vcf.py',
              'bin/select_truth_variants.py', 'bin/report_ME.py',
              'bin/identify_roh.py',
              'bin/evaluate_phasing_perf.py',
