@@ -127,7 +127,7 @@ with h5py.File(args.input, mode='r') as h5_handle:
 
                     # alt may be an np array, with several entries.
                     if multiple_alts:
-                        alt = ",".join(x for x in alt if x != '')
+                        alt = b",".join(x for x in alt if x != b'')
 
                     ref = ref.decode()
                     alt = alt.decode()
