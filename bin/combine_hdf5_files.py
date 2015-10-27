@@ -107,7 +107,7 @@ def combine_sample_genotypes(path_x, path_y, output_path,
 
     alternate = h5file.create_earray(grp_variants, name='ALT',
                                      atom=StringAtom(itemsize=1),
-                                     expectedrows=number_sites, shape=(0, ),
+                                     expectedrows=number_sites, shape=(0, 3),
                                      filters=filters)
 
     genotypes = h5file.create_earray(grp_calldata, name='genotype',
