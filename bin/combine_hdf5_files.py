@@ -58,9 +58,9 @@ def combine_sample_genotypes(path_x, path_y, output_path,
 
     # filter out non-biallelic sites:
     ga = ga.compress(biallelic, axis=0)
-    pos = np.compress(biallelic, pos_a)
-    ref = np.compress(biallelic, fh_a[contig]["variants"]["REF"][:])
-    alt = np.compress(biallelic, fh_a[contig]["variants"]["ALT"][:])
+    pos = np.compress(biallelic, pos_a, axis=0)
+    ref = np.compress(biallelic, fh_a[contig]["variants"]["REF"][:], axis=0)
+    alt = np.compress(biallelic, fh_a[contig]["variants"]["ALT"][:], axis=0)
 
     assert np.array_equal(pos, pos_b)
 
