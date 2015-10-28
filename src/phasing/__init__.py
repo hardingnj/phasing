@@ -6,7 +6,7 @@ The ``phasing`` package.
 from __future__ import division, print_function, unicode_literals, \
     absolute_import
 
-__version__ = '0.4.5'
+__version__ = '0.4.6'
 
 from . import utils
 from . import switch
