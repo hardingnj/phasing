@@ -10,6 +10,7 @@ import h5py
 import anhima
 import numpy as np
 import phasing
+import gzip
 
 chunk_size = 200000
 
@@ -19,7 +20,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('input', help='input hdf5 file')
 parser.add_argument('output', help='output file stem')
 
-parser.add_argument('--keepmissing', '-M', action='store_true', default=False,
+parser.add_argument('--filtermissing', '-F', action='store_false', default=True,
                     dest='keepmissing')
 parser.add_argument('--cutoff', '-C', action='store', default=0.04,
                     dest='missingcutoff', type=float,
@@ -31,27 +32,27 @@ parser.add_argument('--pedigree', '-P', action='store', dest='pedigree',
 args = parser.parse_args()
 
 with h5py.File(args.input, mode='r') as h5_handle:
-    with open(args.output + '.vcf', 'w') as f:
+    with gzip.open(args.output + '.vcf.gz', 'wb') as f:
 
-        print(r'##fileformat=VCFv4.1', file=f)
-        print(r'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
-              file=f)
-        print(r'##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count'
-              r'in genotypes, for each ALT allele, in the same order as'
-              r'listed">', file=f)
+        f.write(b'##fileformat=VCFv4.1\n')
+        f.write(b'##FORMAT=<ID=GT,Number=1,Type=String,'
+                b'Description="Genotype">\n')
+        f.write(b'##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count'
+                b'in genotypes, for each ALT allele, in the same order as'
+                b'listed">\n')
 
-        print(r'##contig=<ID=2L,length=49364325>', file=f)
-        print(r'##contig=<ID=2R,length=61545105>', file=f)
-        print(r'##contig=<ID=3L,length=41963435>', file=f)
-        print(r'##contig=<ID=3R,length=53200684>', file=f)
-        print(r'##contig=<ID=UNKN,length=42389979>', file=f)
-        print(r'##contig=<ID=X,length=24393108>', file=f)
-        print(r'##contig=<ID=Y_unplaced,length=237045>', file=f)
-        print(r'##reference=file:///data/anopheles/ag1000g/data/genome/AgamP3'
-              r'/Anopheles-gambiae-PEST_CHROMOSOMES_AgamP3.fa', file=f)
+        f.write(b'##contig=<ID=2L,length=49364325>\n')
+        f.write(b'##contig=<ID=2R,length=61545105>\n')
+        f.write(b'##contig=<ID=3L,length=41963435>\n')
+        f.write(b'##contig=<ID=3R,length=53200684>\n')
+        f.write(b'##contig=<ID=UNKN,length=42389979>\n')
+        f.write(b'##contig=<ID=X,length=24393108>\n')
+        f.write(b'##contig=<ID=Y_unplaced,length=237045>\n')
+        f.write(b'##reference=file:///data/anopheles/ag1000g/data/genome/AgamP3'
+                b'/Anopheles-gambiae-PEST_CHROMOSOMES_AgamP3.fa\n')
 
-        reqd = ['#CHROM', 'POS', 'ID', 'REF', 'ALT',
-                'QUAL', 'FILTER', 'INFO', 'FORMAT']
+        reqd = [b'#CHROM', b'POS', b'ID', b'REF', b'ALT',
+                b'QUAL', b'FILTER', b'INFO', b'FORMAT']
 
         # rememeber to act on all 1st level keys!
         # does not support multiple chromosomes currently!
@@ -59,7 +60,7 @@ with h5py.File(args.input, mode='r') as h5_handle:
         assert len(h5_handle.keys()) <= 1
         for k in h5_handle.keys():
 
-            samples = [s.decode() for s in h5_handle[k]['samples'][:].tolist()]
+            samples = h5_handle[k]['samples'][:].tolist()
             missing_rates = np.zeros(len(samples))
             ok_samples = np.ones(len(samples), dtype="bool")
 
@@ -103,7 +104,7 @@ with h5py.File(args.input, mode='r') as h5_handle:
                                                   args.output + '.sample',
                                                   samples)
 
-            print("\t".join(reqd + samples), file=f)
+            f.write(b"\t".join(reqd + samples) + b"\n")
 
             number_variants = h5_handle[k]['variants']['POS'][:].size
             chunks = np.arange(0, number_variants + chunk_size, chunk_size)
@@ -129,14 +130,16 @@ with h5py.File(args.input, mode='r') as h5_handle:
                     if multiple_alts:
                         alt = b",".join(x for x in alt if x != b'')
 
-                    ref = ref.decode()
-                    alt = alt.decode()
                     try:
-                        line = "\t".join(
-                            [k, str(pos), '.', ref, alt, '0', '.', '.', 'GT'] +
-                            list(map(lambda x: '/'.join(map(str, x)).replace("-1", "."), gt)))
+                        genotype_str = list(
+                            map(lambda x: '/'.join(map(str, x)).replace("-1", "."), gt))
 
-                        f.write(line + "\n")
+                        line = b"\t".join(
+                            [k.encode(), str(pos).encode()] +
+                            [b'.', ref, alt, b'0', b'.', b'.', b'GT'] +
+                            [s.encode() for s in genotype_str]) + b"\n"
+
+                        f.write(line)
 
                     except TypeError:
                         print(pos)
