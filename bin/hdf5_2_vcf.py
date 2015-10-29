@@ -131,13 +131,16 @@ with h5py.File(args.input, mode='r') as h5_handle:
                         alt = b",".join(x for x in alt if x != b'')
 
                     try:
-                        genotype_str = list(
-                            map(lambda x: '/'.join(map(str, x)).replace("-1", "."), gt))
+                        gstr = np.apply_along_axis(b"/".join, axis=1,
+                                                   arr=gt.astype("a2"))
+
+                        genotype_str = b"\t".join([s for s in gstr]) + b"\n"
+                        genotype_str = genotype_str.replace(b"-1/-1", b"./.")
 
                         line = b"\t".join(
                             [k.encode(), str(pos).encode()] +
                             [b'.', ref, alt, b'0', b'.', b'.', b'GT'] +
-                            [s.encode() for s in genotype_str]) + b"\n"
+                            [genotype_str])
 
                         f.write(line)
 
