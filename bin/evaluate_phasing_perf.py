@@ -297,7 +297,7 @@ parser.add_argument('--samples', '-S', action='store', nargs="+", default=None,
                     dest='samples', required=False,
                     help='Which samples to evaluate.')
 
-parser.add_argument('--chr', '-C', default=None, required=True,
+parser.add_argument('--chr', '-C', default=None, required=True, action="store",
                     dest='chrom', help='Which contig to evaluate')
 
 parser.add_argument('--stem', default=None, dest='stem',
