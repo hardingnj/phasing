@@ -328,9 +328,9 @@ test_samples = test_fh[args.chrom]['samples'][:].tolist()
 
 
 if args.samples is not None:
-    test_idx = [test_samples.index(s) for s in args.samples]
-    eval_idx = [eval_samples.index(s) for s in args.samples]
-    sample_names = args.samples
+    test_idx = [test_samples.index(s.encode()) for s in args.samples]
+    eval_idx = [eval_samples.index(s.encode()) for s in args.samples]
+    sample_names = [s.encode() for s in args.samples]
 else:
     intersection = np.intersect1d(eval_samples, test_samples)
     test_idx = [test_samples.index(s) for s in intersection]
