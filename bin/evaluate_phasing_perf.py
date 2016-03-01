@@ -1,11 +1,12 @@
 __author__ = 'Nicholas Harding'
+__version__ = 'v1.0.0'
 
 # This script takes a list of samples,
 # two sets of phased data and evaluates one against the other
 
 # to produce:
-# - 3 plots of performance.
-# - A raw data file describing all switch errors
+# - 2 plots of performance.
+    # - A raw data file describing all switch errors
 # - A summary table of number of errors in each window.
 
 import argparse
@@ -13,7 +14,6 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from intervaltree import IntervalTree
 import allel
 import anhima.gt as gt
 import anhima.loc as loc
@@ -21,12 +21,33 @@ import phasing as ph
 from scipy.stats import binned_statistic, beta
 from os.path import join
 from math import ceil
+import pyfasta
+import re
+from intervaltree import IntervalTree
 
 
-contig_lengths = {"2L": 49364325, "2R": 61545105,
-                  "3L": 41963435, "3R": 53200684,
-                  "X": 24393108, "Y_unplaced": 237045,
-                  "UNKN": 42389979}
+def find_reference_gaps(genome_fa):
+
+    # fix on a gapsize of 1kb, as ld breaks down over this distance and
+    # no chance of read based phasing
+    # do chunks of 10k at a time. look for consecutive Ns.
+
+    size = 10000
+    gap_size = 1000
+
+    gaps = list()
+
+    for i in range(0, len(genome_fa), size - (2 * gap_size)):
+        text = genome_fa[i:i+size]
+
+        for m in re.finditer("N{1000}?", text, flags=re.IGNORECASE):
+            gaps.append((i + m.start(), i + m.end()))
+
+    tree = IntervalTree.from_tuples(gaps)
+    tree.merge_overlaps()
+    tree = sorted(tree)
+
+    return np.array([[iv.begin, iv.end] for iv in tree])
 
 
 # utility function for plot_switch_errors,
@@ -126,81 +147,75 @@ def calc_marker_dist(pos, homozygosity=None):
     return stop - start - sum_roh
 
 
-def evaluate_markers(start, markers, error_positions, window_size=2e5):
+def evaluate_markers(markers, error_positions):
     """
     function that retuns all marker distances, and whether they are a SE.
     start: is the genomic window start pos
     markers: an arr of genetic positions of the markers
     error_pos: an arr of error positions
     window_size: window size
-
     """
-    sliced = loc.locate_interval(markers, start, start + window_size)
-    window_markers = markers[sliced]
-    if window_markers.size == 0:
-        return np.empty(0, dtype="int"), np.empty(0, dtype="bool")
 
-    # don't care if first marker is an error...
-    errors = np.in1d(window_markers[1:], error_positions)
-    return window_markers, errors
+    if markers.size == 0:
+        return np.empty(0, dtype="bool")
+
+    # don't care if first marker is an error as window based ie pertains to
+    # gap between marker and immediately before
+    errors = np.in1d(markers[1:], error_positions)
+
+    return errors
 
 
-def calculate_switch_distances(start_points, switch_data,
-                               window_size, roh_dict):
+def calculate_switch_distances(windows, switch_array, positions, rohz, gaps):
 
-    # intial declatations
-    mean_marker_dist = np.repeat(np.NaN, start_points.size)
-    mean_switch_dist = np.repeat(np.NaN, start_points.size)
-    conf_switch_dist = np.repeat(np.NaN, 2*start_points.size).reshape((
-        start_points.size, 2))
+    positions = allel.SortedIndex(positions)
+    gap_mp = np.mean(gaps, axis=1)
 
-    marker_count = np.zeros(start_points.size, dtype="int")
-    error_count = np.zeros(start_points.size, dtype="int")
-    pids = switch_data.keys()
+    marker_count = np.zeros(windows.shape[0], dtype="int")
+    marker_dist = np.zeros(windows.shape[0], dtype="float")
+    error_count = np.zeros(windows.shape[0], dtype="int")
 
-    evaluated_pos = {pid: switch_data[pid][2] for pid in pids}
+    pos_sw = ph.switch.derive_position_switch_array(switch_array)
+    pos_errors = np.take(positions, pos_sw[:-1].cumsum())
 
-    # pos errors represents the position of switch errors in the chromosome.
-    pos_errors = {pid: np.take(evaluated_pos[pid],
-                               switch_data[pid][1][:-1].cumsum())
-                  for pid in pids}
+    for i, (start, stop) in enumerate(windows):
 
-    for i, start in enumerate(start_points):
+        # this is the code I need to change
+        # A don't count error if immediately after GAP
+        # B don't count towards distance
+        try:
+            ix = positions.locate_range(start, stop)
 
-        d = {pid: evaluate_markers(start,
-                                   switch_data[pid][2],
-                                   pos_errors[pid],
-                                   window_size) for pid in pids}
+        except KeyError:
+            marker_dist[i] = 0.0
+            marker_count[i] = 0
+            error_count[i] = 0
+            continue
 
-        positions = {pid: d[pid][0] for pid in pids}
-        errors = {pid: d[pid][1] for pid in pids}
+        # how many separate gaps between first and last ix?
+        gap_ix = np.searchsorted(positions[ix], gap_mp)
 
-        distances = [calc_marker_dist(positions[pid],
-                                      roh_dict[pid]) for pid in pids]
+        # interested in number of gaps
+        gap_pos = np.unique(
+            np.compress((gap_ix < positions[ix].size) & (gap_ix > 0), gap_ix))
 
-        total_distance = np.sum(distances)
+        # now insert 0 and pos size at beginning and end
+        cuts = np.concatenate([[0], gap_pos, [positions[ix].size]])
+        assert cuts.size >= 2
 
-        n_markers = int(np.sum([np.size(p) - 1 for p in positions.values()]))
-        n_error = int(np.sum([np.sum(e) for e in errors.values()]))
+        for p, q in zip(cuts[:-1], cuts[1:]):
+            error_count[i] += np.sum(evaluate_markers(positions[ix][p:q],
+                                                      pos_errors))
 
-        max_p_err = beta.ppf(0.975, 1 + n_error, 1 + n_markers - n_error)
-        min_p_err = beta.ppf(0.025, 1 + n_error, 1 + n_markers - n_error)
-        p_error = beta.ppf(0.5, 1 + n_error, 1 + n_markers - n_error)
+            marker_dist[i] += calc_marker_dist(positions[ix][p:q], rohz)
+            # just one marker is not informative.
+            marker_count[i] += (q - p - 1)
 
-        mean_marker_d = total_distance/n_markers
-        mean_switch_d = mean_marker_d/p_error
-        mean_marker_dist[i] = mean_marker_d
-        mean_switch_dist[i] = mean_switch_d
-        conf_switch_dist[i] = (mean_marker_d/min_p_err, mean_marker_d/max_p_err)
-        marker_count[i] = n_markers
-        error_count[i] = n_error
-
-    return (mean_marker_dist, mean_switch_dist, conf_switch_dist,
-            marker_count, error_count)
+    return np.vstack([marker_dist, marker_count, error_count])
 
 
 def draw_msd_across_genome(genome_pos, marker_dist, mean_switch_dist,
-                           conf_mean_switch_dist, number_markers):
+                           lower, upper, number_markers):
 
     mean_switch_dist[number_markers < 50] = np.NaN
     fig = plt.figure(figsize=(12, 3))
@@ -209,71 +224,48 @@ def draw_msd_across_genome(genome_pos, marker_dist, mean_switch_dist,
     ax.plot(genome_pos, 2 * marker_dist, 'k-', linewidth=2.0)
     ax.plot(genome_pos, mean_switch_dist, 'r-',  linewidth=2.0)
 
-    upper = conf_mean_switch_dist.T[0]
-    lower = conf_mean_switch_dist.T[1]
+    # cords = np.array([[genome_pos, genome_pos[::-1],
+    #                    upper, lower[::-1]]]).T.reshape((-1, 2), order="A")
+    #
+    # poly = plt.Polygon(cords, facecolor="r", edgecolor=None, alpha=0.2)
+    #
+    # ax.add_patch(poly)
 
-    cords = np.array([[genome_pos, genome_pos[::-1],
-                       upper, lower[::-1]]]).T.reshape((-1, 2), order="A")
-    poly = plt.Polygon(cords, facecolor="r", edgecolor=None, alpha=0.2)
-
-    ax.add_patch(poly)
     ax.grid(True)
     ax.set_ylabel("Distance (bp)")
     ax.set_xlabel("Genomic position (bp)")
     ax.set_yscale("log")
+    ax.set_ylim((100, 100000))
 
     return fig
 
 
-def draw_switch_err_rate(genome_pos, marker_dist, mean_switch_dist,
-                         conf_mean_switch_dist, number_markers):
+def draw_switch_err_rate(genome_pos, rate, rate_l, rate_u, number_markers):
 
-    mean_switch_dist[number_markers < 50] = np.NaN
+    rate[number_markers < 50] = np.NaN
+    rate_l[number_markers < 50] = np.NaN
+    rate_u[number_markers < 50] = np.NaN
 
     fig = plt.figure(figsize=(12, 3))
     ax = fig.add_subplot(111)
 
-    ax.plot(genome_pos, 1 - marker_dist/mean_switch_dist, 'r-', linewidth=2.0)
+    ax.plot(genome_pos, 1 - rate, 'r-', linewidth=2.0)
     #ax.plot(genome_pos, mean_switch_dist, 'r-',  linewidth=2.0)
 
-    upper = 1 - marker_dist/conf_mean_switch_dist.T[0]
-    lower = 1 - marker_dist/conf_mean_switch_dist.T[1]
-
-    cords = np.array([[genome_pos, genome_pos[::-1],
-                       upper, lower[::-1]]]).T.reshape((-1, 2), order="A")
-    poly = plt.Polygon(cords, facecolor="r", edgecolor=None, alpha=0.2)
-    ax.add_patch(poly)
+    # upper = 1 - rate_u
+    # lower = 1 - rate_l
+    #
+    # cords = np.array([[genome_pos, genome_pos[::-1],
+    #                    upper, lower[::-1]]]).T.reshape((-1, 2), order="A")
+    # poly = plt.Polygon(cords, facecolor="r", edgecolor=None, alpha=0.2)
+    # ax.add_patch(poly)
 
     ax.grid(True)
+    ax.set_ylim((0.82, 1.0))
     ax.set_ylabel("1 - (switch error rate)")
     ax.set_xlabel("Genomic position (bp)")
 
     return fig
-
-
-def switch_distances_tofile(path, mean_marker_d, mean_switch_d, conf_int, nmark,
-                            nerr, window_starts, window_size):
-
-    columns = "window", "mean marker dist", "mean switch dist", "CI 95%", \
-              "n Errors", "n Markers"
-
-    swindows = ["{0}-{1} Mb".format(np.round(x*1e-6, 2),
-                                    np.round((y-1)*1e-6, 2))
-                for x, y in zip(window_starts, window_starts + window_size)]
-
-    ci = ["{0},{1}".format(np.round(x, 2), np.round(y, 2))
-          for y, x in conf_int]
-
-    frame = pd.DataFrame(columns=columns)
-    frame[columns[0]] = swindows
-    frame[columns[1]] = np.round(mean_marker_d, 2)
-    frame[columns[2]] = np.round(mean_switch_d, 2)
-    frame[columns[3]] = ci
-    frame[columns[4]] = nerr
-    frame[columns[5]] = nmark
-    frame["error rate"] = np.round(nerr/nmark, 4)
-    frame.to_csv(path + ".txt", sep="\t", index=False)
-    frame.to_latex(path + ".tex", index=False)
 
 
 parser = argparse.ArgumentParser(
@@ -288,6 +280,10 @@ parser.add_argument('--eval', '-E', help='input hdf5 file to evaluate against',
 
 parser.add_argument('--output', '-O', help='output directory', action="store",
                     dest="outdir", default="/tmp/", type=str)
+
+parser.add_argument('--fasta', '-F', action='store', default=None,
+                    dest='fasta', help='FASTA file', type=str,
+                    required=True)
 
 parser.add_argument('--accessibility', '-A', action='store', default=None,
                     dest='accessibility', help='Accessibility h5', type=str,
@@ -309,14 +305,19 @@ parser.add_argument('--roh', '-R', action='store',
                     help='Path to ROH file for calculating switch distance')
 
 parser.add_argument('--overlap', '-wo', action='store',
-                    default=500000, dest='overlap', type=int,
+                    default=250000, dest='overlap', type=int,
                     help='Overlap between windows.')
 
-parser.add_argument('--windowsize', '-ws', action='store', default=250000,
+parser.add_argument('--windowsize', '-ws', action='store', default=500000,
                     type=int, dest='winsize',
                     help='Evenly spaced windows across genome')
 
+
 args = parser.parse_args()
+genome = pyfasta.Fasta(args.fasta)
+contig_length = len(genome[args.chrom])
+reference_gaps = find_reference_gaps(genome[args.chrom])
+
 filestem = join(args.outdir, "{chrom}_{stem}_".format(chrom=args.chrom,
                                                       stem=args.stem))
 
@@ -369,7 +370,12 @@ assert e_gt.shape == t_gt.shape, ("Not same shape:", e_gt.shape, t_gt.shape)
 
 is_missing = e_gt.is_missing()
 
-data = dict()
+scan_windows = allel.stats.window.position_windows(pos=None, start=1,
+                                                   stop=contig_length,
+                                                   size=args.winsize,
+                                                   step=args.overlap)
+
+res = np.empty((len(sample_names), 3, scan_windows.shape[0]))
 
 for idx, sid in enumerate(sample_names):
 
@@ -380,24 +386,52 @@ for idx, sid in enumerate(sample_names):
     sample_gs = np.compress(hz, e_gt[:, idx], axis=0)
 
     switch = ph.switch.determine_haplotype_switch(sample_gs, sample_gt)
-    pos_sw = ph.switch.derive_position_switch_array(switch)
-    data[sid] = switch, pos_sw, sample_pos
+
+    res[idx, :, :] = calculate_switch_distances(windows=scan_windows,
+                                                switch_array=switch,
+                                                positions=sample_pos,
+                                                rohz=roh[sid],
+                                                gaps=reference_gaps)
+
+# now summarize across the samples dimension.
+sum_r = res.sum(axis=0)
+
+distance, n_markers, n_errors = sum_r
+n_markers = n_markers.astype("int")
+n_errors = n_errors.astype("int")
+p_error = beta.ppf(0.5, 1 + n_errors, 1 + n_markers - n_errors)
+p_error_l = beta.ppf(0.025, 1 + n_errors, 1 + n_markers - n_errors)
+p_error_u = beta.ppf(0.975, 1 + n_errors, 1 + n_markers - n_errors)
+err_rate = n_errors/(n_markers + n_errors)
+
+mean_marker_d = distance/n_markers
+mean_switch_d = mean_marker_d/p_error
+mean_switch_d_l = mean_marker_d/p_error_l
+mean_switch_d_u = mean_marker_d/p_error_u
+
+df = pd.DataFrame.from_items((("start", scan_windows.T[0]),
+                              ("stop", scan_windows.T[1]),
+                              ("n_markers", n_markers),
+                              ("n_errors", n_errors),
+                              ("err_rate", err_rate),
+                              ("distance", distance),
+                              ("mean_marker_dist", mean_marker_d),
+                              ("mean_switch_dist", mean_switch_d),
+                              ("mean_switch_dist_2.5%", mean_switch_d_l),
+                              ("mean_switch_dist_97.5%", mean_switch_d_u)))
 
 het_positions = gt.is_het(e_gt).any(axis=1)
-pl = plot_switch_errors(np.compress(het_positions, e_pos), data)
-pl.savefig(filestem + "switch_errors.png", bbox_inches="tight")
 
-# now build the windowed MSD array.
-windows = np.arange(1, contig_lengths[args.chrom], args.winsize).astype('int')
+# 29/2/16 this plot is deprecated currently. Does not make main paper.
+#pl = plot_switch_errors(np.compress(het_positions, e_pos), data)
+#pl.savefig(filestem + "switch_errors.png", bbox_inches="tight")
 
-mmd, msd, conf, nmarker, nerror = calculate_switch_distances(
-    windows, data, window_size=args.overlap, roh_dict=roh)
-
-pl = draw_msd_across_genome(windows, mmd, msd, conf, nmarker)
+pl = draw_msd_across_genome(scan_windows.mean(1), mean_marker_d, mean_switch_d,
+                            mean_switch_d_l, mean_switch_d_u, n_markers)
 pl.savefig(filestem + "mean_switch_distance.png", bbox_inches="tight")
 
-pl = draw_switch_err_rate(windows, mmd, msd, conf, nmarker)
+pl = draw_switch_err_rate(scan_windows.mean(1), err_rate, p_error_l,
+                          p_error_u, n_markers)
 pl.savefig(filestem + "switch_error_rate.png", bbox_inches="tight")
 
-switch_distances_tofile(filestem + "table_switch_errors", mmd, msd, conf,
-                        nmarker, nerror, windows, args.overlap)
+df.to_csv(filestem + "table_switch_errors.txt", sep="\t", index=False)
