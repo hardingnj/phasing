@@ -1,5 +1,5 @@
 __author__ = 'Nicholas Harding'
-__version__ = 'v1.0.0'
+__version__ = 'v1.1.0'
 
 # This script takes a list of samples,
 # two sets of phased data and evaluates one against the other
@@ -435,3 +435,4 @@ pl = draw_switch_err_rate(scan_windows.mean(1), err_rate, p_error_l,
 pl.savefig(filestem + "switch_error_rate.png", bbox_inches="tight")
 
 df.to_csv(filestem + "table_switch_errors.txt", sep="\t", index=False)
+np.save(filestem + "refgaps.npy", reference_gaps)
