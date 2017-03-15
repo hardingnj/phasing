@@ -7,10 +7,18 @@ __author__ = 'Nicholas Harding'
 
 import argparse
 import h5py
-import anhima
+import allel
 import numpy as np
 import phasing
 import gzip
+
+
+def get_consecutive_true(a):
+    if a.sum() == 0:
+        return 0
+    else:
+        return np.diff(np.where(
+            np.concatenate(([a[0]], a[:-1] != a[1:], [True])))[0])[::2].max()
 
 chunk_size = 200000
 
@@ -64,15 +72,18 @@ with h5py.File(args.input, mode='r') as h5_handle:
             missing_rates = np.zeros(len(samples))
             ok_samples = np.ones(len(samples), dtype="bool")
 
+            gt = allel.GenotypeChunkedArray(
+                h5_handle[k]['calldata/genotype'][:])
+
             if not args.keepmissing:
 
+                missing_gt = gt.is_missing()
+
                 for i, s in enumerate(samples):
-                    missing_genotypes = anhima.gt.is_missing(
-                        h5_handle[k]['calldata']['genotype'][:, i].reshape(
-                            (-1, 1, 2))).squeeze()
-                    consecutive_miss = phasing.utils.get_consecutive_true(
-                        missing_genotypes)
-                    miss_rate_i = consecutive_miss/float(missing_genotypes.size)
+
+                    consecutive_miss = get_consecutive_true(missing_gt[:, i])
+                    miss_rate_i = consecutive_miss/float(missing_gt.shape[0])
+
                     print("Missing rate of", s, ':',
                           "{:.8f}".format(miss_rate_i),
                           "({0}/{1})".format(i+1, len(samples)))
